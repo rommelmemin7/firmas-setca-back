@@ -66,7 +66,8 @@ export class ApplicationService {
           // approvedById se deja null al crear
         },
       });
-      return { message: 'Solictud creada con exito', app };
+      return Utils.formatResponseSuccess(
+        'Solicitud creada exitosamente',Utils.formatDates(app));
     } catch (error) {
       throw new BadRequestException(
         'Error creando la solicitud: ' + error.message,
@@ -127,11 +128,13 @@ export class ApplicationService {
         data: {
           approvedById: adminUserId,
           status: 'approved',
+          approvedAt: new Date(),
         },
         select: {
           id: true,
           identificationNumber: true,
           status: true,
+          approvedAt: true,
           createdAt: true,
           updatedAt: true,
           approvedBy: {

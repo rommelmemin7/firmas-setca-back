@@ -148,8 +148,11 @@ model Application {
   approvedBy              User? @relation("ApplicationApprover", fields: [approvedById], references: [id])
   planId                  Int
   plan                    Plan @relation(fields: [planId], references: [id])
+  payment Payment? @relation("ApplicationPayment")
+
 
   createdAt               DateTime  @default(now())
+  approvedAt              DateTime?
   updatedAt               DateTime  @updatedAt
 }
 
@@ -164,5 +167,19 @@ model Subscription {
   status     String    @default("active")
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+}
+
+model Payment {
+  id                Int         @id @default(autoincrement())
+  applicationId     Int         @unique
+  application Application @relation("ApplicationPayment", fields: [applicationId], references: [id])
+
+  comprobanteNumber String      @db.VarChar(50)
+  status            String      @default("pendiente") // pendiente, aprobado, rechazado
+  comprobanteImage Bytes        @db.LongBlob
+  createdAt         DateTime    @default(now())
+  approvedAt        DateTime?
+
+  updatedAt         DateTime    @updatedAt
 }
 

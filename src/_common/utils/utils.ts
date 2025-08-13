@@ -114,21 +114,24 @@ export class Utils {
     return str.padStart(longitud, '0');
   }
 
-   static formatDates<T extends { createdAt: Date; updatedAt: Date }>(data: T | T[]): any {
+   static formatDates<T extends { createdAt: Date; updatedAt: Date; approvedAt?: Date | null }
+>(data: T | T[]): any {
+  const formatItem = (item: T) => ({
+    ...item,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+    ...(item.approvedAt
+      ? { approvedAt: item.approvedAt.toISOString() }
+      : { approvedAt: null }),
+  });
+
   if (Array.isArray(data)) {
-    return data.map(item => ({
-      ...item,
-      createdAt: item.createdAt.toISOString(),
-      updatedAt: item.updatedAt.toISOString(),
-    }));
+    return data.map(formatItem);
   } else {
-    return {
-      ...data,
-      createdAt: data.createdAt.toISOString(),
-      updatedAt: data.updatedAt.toISOString(),
-    };
+    return formatItem(data);
   }
 }
+
 
  
 }
