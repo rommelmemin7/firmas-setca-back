@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { Utils } from 'src/_common/utils/utils';
 
 @Injectable()
 export class AuthService {
@@ -28,14 +29,14 @@ export class AuthService {
       });
 
       if (existingUser) {
-        throw new BadRequestException('El correo ya está registrado');
+        return Utils.formatResponseFail('El correo ya está registrado');
       }
 
       const roleExists = await this.prisma.role.findUnique({
         where: { id: roleId },
       });
       if (!roleExists) {
-        throw new BadRequestException('El roleId proporcionado no existe');
+       return Utils.formatResponseFail('El roleId proporcionado no existe');
       }
       const hashedPassword: string = await bcrypt.hash(password, 10);
       const user = await this.prisma.user.create({
@@ -48,7 +49,7 @@ export class AuthService {
         },
       });
 
-      return { message: 'Usuario registrado', userId: user.id };
+      return Utils.formatResponseSuccess('Usuario registrado', {userId: user.id});
     } catch (error: unknown) {
       if (error instanceof BadRequestException) {
         throw error;
@@ -69,7 +70,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Credenciales inválidas');
+      return  Utils.formatResponseFail('Credenciales inválidas');
     }
 
     const isPasswordValid: boolean = await bcrypt.compare(
@@ -77,7 +78,7 @@ export class AuthService {
       user.passwordHash,
     );
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Credenciales inválidas');
+      return Utils.formatResponseFail('Credenciales inválidas');
     }
 
     const payload = {
@@ -89,7 +90,7 @@ export class AuthService {
 
     const token: string = this.jwtService.sign(payload);
 
-    return {
+    return Utils.formatResponseSuccess('Inicio de sesión exitoso', {
       access_token: token,
       user: {
         id: user.id,
@@ -97,6 +98,6 @@ export class AuthService {
         email: user.email,
         role: user.role.name,
       },
-    };
+    });
   }
 }

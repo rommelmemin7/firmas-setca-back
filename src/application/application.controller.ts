@@ -14,7 +14,6 @@ import { ApplicationService } from './application.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { JwtAuthGuard } from 'src/_common/guards/jwt-auth.guard';
 import { BufferToBase64Interceptor } from 'src/_common/guards/interceptors/buffer-to-base64.interceptor';
-// Si usas guard para proteger rutas de admin
 
 @Controller('applications')
 @UseInterceptors(BufferToBase64Interceptor)
@@ -26,22 +25,21 @@ export class ApplicationController {
     return this.applicationService.createApplication(dto);
   }
 
-  @UseGuards(JwtAuthGuard) // Solo admins con token pueden acceder
+  @UseGuards(JwtAuthGuard) 
   @Get()
   async findAll() {
     return this.applicationService.getAllApplications();
   }
 
-  @UseGuards(JwtAuthGuard) // Solo admins con token pueden acceder
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.applicationService.getApplicationById(id);
   }
 
-  @UseGuards(JwtAuthGuard) // Solo admins con token pueden acceder
+  @UseGuards(JwtAuthGuard) 
   @Patch(':id/approve')
   async approve(@Param('id', ParseIntPipe) id: number, @Req() req) {
-    // req.user debe contener info del admin logueado (por ejemplo id)
     const adminUserId = req.user.sub;
     return this.applicationService.approveApplication(id, adminUserId);
   }

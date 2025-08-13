@@ -5,18 +5,24 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service'; // Asumo tienes este servicio
 import { CreateApplicationDto } from './dto/create-application.dto';
-import { formatDates } from 'src/_common/utils/utils';
+import { Utils } from 'src/_common/utils/utils';
 
 @Injectable()
 export class ApplicationService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createApplication(dto: CreateApplicationDto) {
-    // Podrías hacer validaciones adicionales acá si quieres
+    const plan = await this.prisma.plan.findUnique({
+      where: { id: dto.planId },
+    });
+    if (!plan) {
+      throw new BadRequestException('El plan especificado no existe');
+    }
     try {
       const app = await this.prisma.application.create({
         data: {
           status: 'pending',
+          planId: dto.planId,
           identificationNumber: dto.identificationNumber,
           applicantName: dto.applicantName,
           applicantLastName: dto.applicantLastName,
@@ -60,7 +66,7 @@ export class ApplicationService {
           // approvedById se deja null al crear
         },
       });
-      return {message:"Solictud creada con exito",app};
+      return { message: 'Solictud creada con exito', app };
     } catch (error) {
       throw new BadRequestException(
         'Error creando la solicitud: ' + error.message,
@@ -69,57 +75,131 @@ export class ApplicationService {
   }
 
   async getAllApplications() {
-     const app = await this.prisma.application.findMany({
+    const app = await this.prisma.application.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
         approvedBy: { select: { id: true, name: true, email: true } },
       },
     });
 
-    return formatDates(app);
-
+    return Utils.formatDates(app);
   }
 
   async getApplicationById(id: number) {
-    const app = await this.prisma.application.findUnique({
-      where: { id },
-      include: {
-        approvedBy: { select: { id: true, name: true, email: true } },
-      },
-    });
-    if (!app) throw new NotFoundException('Solicitud no encontrada');
-    return formatDates(app);
+    try {
+      const app = await this.prisma.application.findUnique({
+        where: { id },
+        include: {
+          approvedBy: { select: { id: true, name: true, email: true } },
+        },
+      });
+      if (!app){
+        return Utils.formatResponseFail('Solicitud no encontrada');
+      }
+
+        return Utils.formatResponseSuccess(
+        'Solicitud encontrada',
+        Utils.formatDates(app),
+      ); 
+    } catch (error) {
+      return Utils.formatResponseFail('Solicitud no encontrada: ' + error.message);
+    }
   }
 
   async approveApplication(id: number, adminUserId: number) {
-    const app = await this.getApplicationById(id);
+    try {
+      const response = await this.getApplicationById(id);
+      const app = response.data;
 
-    if (app.approvedById) {
-      throw new BadRequestException('Esta solicitud ya fue aprobada');
-    }
+      if (response.ok == false) {
+        return Utils.formatResponseFail('Solicitud no encontrada');
+      }
 
-    const updatedApp = await this.prisma.application.update({
-      where: { id },
-      data: {
-        approvedById: adminUserId,
-        status: 'approved',
-      },
-      select: {
-        id: true,
-        identificationNumber: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        approvedBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+
+      if (app.approvedById) {
+        return Utils.formatResponseFail(
+          'La solicitud ya ha sido aprobada',
+        );
+      }
+
+      const updatedApp = await this.prisma.application.update({
+        where: { id },
+        data: {
+          approvedById: adminUserId,
+          status: 'approved',
+        },
+        select: {
+          id: true,
+          identificationNumber: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          approvedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return  formatDates(updatedApp);
+      const client = await this.prisma.client.create({
+        data: {
+          identificationNumber: app.identificationNumber,
+          applicantName: app.applicantName,
+          applicantLastName: app.applicantLastName,
+          applicantSecondLastName: app.applicantSecondLastName,
+          fingerCode: app.fingerCode,
+          emailAddress: app.emailAddress,
+          cellphoneNumber: app.cellphoneNumber,
+          city: app.city,
+          province: app.province,
+          address: app.address,
+          countryCode: app.countryCode,
+          companyRuc: app.companyRuc,
+          positionCompany: app.positionCompany,
+          companySocialReason: app.companySocialReason,
+          appointmentExpirationDate: app.appointmentExpirationDate,
+          documentType: app.documentType,
+          referenceTransaction: app.referenceTransaction,
+          applicationType: app.applicationType,
+          period: app.period,
+          identificationFront: app.identificationFront,
+          identificationBack: app.identificationBack,
+          identificationSelfie: app.identificationSelfie,
+          pdfCompanyRuc: app.pdfCompanyRuc,
+          pdfRepresentativeAppointment: app.pdfRepresentativeAppointment,
+          pdfAppointmentAcceptance: app.pdfAppointmentAcceptance,
+          pdfCompanyConstitution: app.pdfCompanyConstitution,
+          authorizationVideo: app.authorizationVideo,
+        },
+      });
+
+      const plan = await this.prisma.plan.findUnique({
+        where: { id: app.planId },
+      });
+      // Calcular fechas
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(startDate.getDate() + plan!.durationdays);
+
+      // Crear suscripción
+      await this.prisma.subscription.create({
+        data: {
+          clientId: client.id,
+          planId: plan!.id,
+          startDate,
+          endDate,
+        },
+      });
+
+      return Utils.formatResponseSuccess(
+        'Solicitud aprobada',
+        Utils.formatDates(updatedApp),
+      ); // return
+    } catch (error) {
+     return Utils.formatResponseFail('Error aprobando la solicitud: ' + error.message);
+    }
   }
 }

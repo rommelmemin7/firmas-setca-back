@@ -2,6 +2,8 @@
 import {
   IsDateString,
   IsEmail,
+  IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
@@ -105,4 +107,8 @@ export class CreateApplicationDto {
 
   @IsOptional()
   authorizationVideo?: string;
+  
+  @IsNotEmpty({ message: 'El planId es obligatorio' })
+  @IsInt({ message: 'El planId debe ser un número entero' })
+  planId: number;
 }

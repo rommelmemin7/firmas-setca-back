@@ -25,11 +25,12 @@ model Plan {
   name           String
   description    String?
   price          Float
-  durationMonths Int             @default(1)
+  durationdays   Int             @default(7)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
   subscriptions  Subscription[]
+  applications   Application[]
 }
 
 
@@ -112,7 +113,6 @@ model Client {
 
 model Application {
   id                      Int       @id @default(autoincrement())
-  
   identificationNumber    String    @db.VarChar(10)
   applicantName           String    @db.VarChar(100)
   applicantLastName       String?   @db.VarChar(100)
@@ -137,7 +137,7 @@ model Application {
   identificationBack      Bytes
   identificationSelfie    Bytes
 
- status           String     @default("pendiente")
+  status           String     @default("pendiente")
   pdfCompanyRuc           Bytes?
   pdfRepresentativeAppointment Bytes?
   pdfAppointmentAcceptance Bytes?
@@ -146,6 +146,8 @@ model Application {
 
   approvedById            Int?
   approvedBy              User? @relation("ApplicationApprover", fields: [approvedById], references: [id])
+  planId                  Int
+  plan                    Plan @relation(fields: [planId], references: [id])
 
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
