@@ -67,7 +67,9 @@ export class ApplicationService {
         },
       });
       return Utils.formatResponseSuccess(
-        'Solicitud creada exitosamente',Utils.formatDates(app));
+        'Solicitud creada exitosamente',
+        Utils.formatDates(app),
+      );
     } catch (error) {
       throw new BadRequestException(
         'Error creando la solicitud: ' + error.message,
@@ -79,11 +81,32 @@ export class ApplicationService {
     const app = await this.prisma.application.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
+        payment: true,
         approvedBy: { select: { id: true, name: true, email: true } },
       },
     });
 
-    return Utils.formatDates(app);
+    const resp = app.map((a) => ({
+      ...a,
+      createdAt: a.createdAt.toISOString(),
+      updatedAt: a.updatedAt.toISOString(),
+      approvedAt: a.approvedAt ? a.approvedAt.toISOString() : null,
+      payment: a.payment
+        ? {
+            ...a.payment,
+            createdAt: a.payment.createdAt.toISOString(),
+            updatedAt: a.payment.updatedAt.toISOString(),
+            approvedAt: a.payment.approvedAt
+              ? a.payment.approvedAt.toISOString()
+              : null,
+          }
+        : null,
+    }));
+
+    return Utils.formatResponseSuccess(
+      'Solicitudes obtenidas exitosamente',
+      resp,
+    );
   }
 
   async getApplicationById(id: number) {
@@ -94,16 +117,18 @@ export class ApplicationService {
           approvedBy: { select: { id: true, name: true, email: true } },
         },
       });
-      if (!app){
+      if (!app) {
         return Utils.formatResponseFail('Solicitud no encontrada');
       }
 
-        return Utils.formatResponseSuccess(
+      return Utils.formatResponseSuccess(
         'Solicitud encontrada',
         Utils.formatDates(app),
-      ); 
+      );
     } catch (error) {
-      return Utils.formatResponseFail('Solicitud no encontrada: ' + error.message);
+      return Utils.formatResponseFail(
+        'Solicitud no encontrada: ' + error.message,
+      );
     }
   }
 
@@ -116,11 +141,8 @@ export class ApplicationService {
         return Utils.formatResponseFail('Solicitud no encontrada');
       }
 
-
       if (app.approvedById) {
-        return Utils.formatResponseFail(
-          'La solicitud ya ha sido aprobada',
-        );
+        return Utils.formatResponseFail('La solicitud ya ha sido aprobada');
       }
 
       const updatedApp = await this.prisma.application.update({
@@ -202,7 +224,9 @@ export class ApplicationService {
         Utils.formatDates(updatedApp),
       ); // return
     } catch (error) {
-     return Utils.formatResponseFail('Error aprobando la solicitud: ' + error.message);
+      return Utils.formatResponseFail(
+        'Error aprobando la solicitud: ' + error.message,
+      );
     }
   }
 }

@@ -18,7 +18,7 @@ export class PaymentService {
     }
 
     const existingPayment = await this.prisma.payment.findUnique({
-      where: { applicationId : data.applicationId },
+      where: { applicationId: data.applicationId },
     });
 
     if (existingPayment) {
@@ -41,26 +41,33 @@ export class PaymentService {
       },
     });
 
-    return Utils.formatResponseSuccess('Pago creado exitosamente', Utils.formatDates(payment));
+    return Utils.formatResponseSuccess(
+      'Pago creado exitosamente',
+      Utils.formatDates(payment),
+    );
   }
 
   async updateStatus(id: number, data: UpdatePaymentStatusDto) {
     const payment = await this.prisma.payment.findUnique({ where: { id } });
 
-    if (!payment){
+    if (!payment) {
       return Utils.formatResponseFail('Pago no encontrado');
     }
 
-   const updatePayment = await this.prisma.payment.update({
+    const updatePayment = await this.prisma.payment.update({
       where: { id },
       data: {
         status: data.status,
-        approvedAt: data.status === 'aprobado' ? new Date() : null,
+        approvedAt:
+          data.status === 'aprobado' || data.status === 'rechazado'
+            ? new Date()
+            : null,
       },
     });
 
     return Utils.formatResponseSuccess(
-      'Estado del pago actualizado exitosamente', Utils.formatDates(updatePayment)
+      'Estado del pago actualizado exitosamente',
+      Utils.formatDates(updatePayment),
     );
   }
 
@@ -69,8 +76,13 @@ export class PaymentService {
       where: { applicationId },
     });
 
-    if (!payment) throw new BadRequestException('Pago no encontrado');
+    if (!payment) {
+      return Utils.formatResponseFail('Pago no encontrado');
+    }
 
-    return Utils.formatResponseSuccess("Pago encontrado", Utils.formatDates(payment)); ;
+    return Utils.formatResponseSuccess(
+      'Pago encontrado',
+      Utils.formatDates(payment),
+    );
   }
 }

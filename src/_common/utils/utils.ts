@@ -1,6 +1,5 @@
 // utils/dateUtils.ts
 
-
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import * as crypto from 'crypto';
@@ -33,7 +32,6 @@ export class Utils {
     const match = await bcrypt.compare(enteredPassword, dbPassword);
     return match;
   }
-
 
   static generateNumericCode(length: number = 6): string {
     const max = Math.pow(10, length) - 1;
@@ -90,11 +88,11 @@ export class Utils {
       Buffer.from(key),
       iv,
     );
-    let decrypted = "";
-    try{
+    let decrypted = '';
+    try {
       decrypted = decipher.update(encryptedPassword, 'base64', 'utf8');
       decrypted += decipher.final('utf8');
-    }catch(e){}
+    } catch (e) {}
     return decrypted;
   }
 
@@ -110,30 +108,26 @@ export class Utils {
     return encrypted;
   }
 
-  static rellenarConCeros(str:string, longitud:number) {
+  static rellenarConCeros(str: string, longitud: number) {
     return str.padStart(longitud, '0');
   }
 
-   static formatDates<T extends { createdAt: Date; updatedAt: Date; approvedAt?: Date | null }
->(data: T | T[]): any {
-  const formatItem = (item: T) => ({
-    ...item,
-    createdAt: item.createdAt.toISOString(),
-    updatedAt: item.updatedAt.toISOString(),
-    ...(item.approvedAt
-      ? { approvedAt: item.approvedAt.toISOString() }
-      : { approvedAt: null }),
-  });
+  static formatDates<
+    T extends { createdAt: Date; updatedAt: Date; approvedAt?: Date | null },
+  >(data: T | T[]): any {
+    const formatItem = (item: T) => ({
+      ...item,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+      ...(item.approvedAt
+        ? { approvedAt: item.approvedAt.toISOString() }
+        : { approvedAt: null }),
+    });
 
-  if (Array.isArray(data)) {
-    return data.map(formatItem);
-  } else {
-    return formatItem(data);
+    if (Array.isArray(data)) {
+      return data.map(formatItem);
+    } else {
+      return formatItem(data);
+    }
   }
 }
-
-
- 
-}
-
-

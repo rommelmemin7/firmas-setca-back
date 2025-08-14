@@ -1,4 +1,14 @@
-import { Controller, Post, Body, Patch, Get, Param, ParseIntPipe, UseInterceptors, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Patch,
+  Get,
+  Param,
+  ParseIntPipe,
+  UseInterceptors,
+  UseGuards,
+} from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
@@ -9,13 +19,12 @@ import { JwtAuthGuard } from 'src/_common/guards/jwt-auth.guard';
 @UseInterceptors(BufferToBase64Interceptor)
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
-  
-  
+
   @Post()
   create(@Body() createPaymentDto: CreatePaymentDto) {
     return this.paymentService.createPayment(createPaymentDto);
   }
-  
+
   @UseGuards(JwtAuthGuard)
   @Patch(':id/status')
   updateStatus(
@@ -26,7 +35,9 @@ export class PaymentController {
   }
 
   @Get('application/:applicationId')
-  getByApplication(@Param('applicationId', ParseIntPipe) applicationId: number) {
+  getByApplication(
+    @Param('applicationId', ParseIntPipe) applicationId: number,
+  ) {
     return this.paymentService.getPaymentByApplication(applicationId);
   }
 }

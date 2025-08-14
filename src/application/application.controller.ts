@@ -25,7 +25,7 @@ export class ApplicationController {
     return this.applicationService.createApplication(dto);
   }
 
-  @UseGuards(JwtAuthGuard) 
+  @UseGuards(JwtAuthGuard)
   @Get()
   async findAll() {
     return this.applicationService.getAllApplications();
@@ -37,7 +37,7 @@ export class ApplicationController {
     return this.applicationService.getApplicationById(id);
   }
 
-  @UseGuards(JwtAuthGuard) 
+  @UseGuards(JwtAuthGuard)
   @Patch(':id/approve')
   async approve(@Param('id', ParseIntPipe) id: number, @Req() req) {
     const adminUserId = req.user.sub;
