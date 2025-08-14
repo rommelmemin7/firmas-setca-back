@@ -3,6 +3,7 @@
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import * as crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 
 export class Utils {
   static formatResponseFail(errorMsg: any): any {
@@ -129,5 +130,11 @@ export class Utils {
     } else {
       return formatItem(data);
     }
+  }
+
+  static generateReferenceTransaction(prefix = 'APP'): string {
+    const timestamp = Date.now(); // milisegundos desde 1970
+    const uuid = uuidv4(); // UUID v4 aleatorio
+    return `${prefix}-${timestamp}-${uuid}`;
   }
 }

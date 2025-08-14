@@ -26,6 +26,7 @@ model Plan {
   description    String?
   price          Float
   durationdays   Int             @default(7)
+  status       String            @default("active")
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 

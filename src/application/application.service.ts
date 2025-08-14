@@ -42,7 +42,7 @@ export class ApplicationService {
             : null,
           applicationType: dto.applicationType,
           documentType: dto.documentType,
-          referenceTransaction: dto.referenceTransaction,
+          referenceTransaction: Utils.generateReferenceTransaction('REF-TX'),
           period: dto.period,
           identificationFront: Buffer.from(dto.identificationFront, 'base64'),
           identificationBack: Buffer.from(dto.identificationBack, 'base64'),
