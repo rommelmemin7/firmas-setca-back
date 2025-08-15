@@ -43,7 +43,7 @@ export class ApplicationService {
           applicationType: dto.applicationType,
           documentType: dto.documentType,
           referenceTransaction: Utils.generateReferenceTransaction('REF-TX'),
-          period: dto.period,
+          period: plan.period!,
           identificationFront: Buffer.from(dto.identificationFront, 'base64'),
           identificationBack: Buffer.from(dto.identificationBack, 'base64'),
           identificationSelfie: Buffer.from(dto.identificationSelfie, 'base64'),
@@ -132,7 +132,7 @@ export class ApplicationService {
     }
   }
 
-  async approveApplication(id: number, adminUserId: number) {
+  /* async approveApplication(id: number, adminUserId: number) {
     try {
       const response = await this.getApplicationById(id);
       const app = response.data;
@@ -228,5 +228,5 @@ export class ApplicationService {
         'Error aprobando la solicitud: ' + error.message,
       );
     }
-  }
+  } */
 }

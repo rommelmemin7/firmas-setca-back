@@ -3,10 +3,14 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Utils } from 'src/_common/utils/utils';
+import { FirmaSeguraService } from 'src/firma-segura/firma-segura.service';
 
 @Injectable()
 export class PaymentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private firmaSeguraService: FirmaSeguraService,
+  ) {}
 
   async createPayment(data: CreatePaymentDto) {
     const appExists = await this.prisma.application.findUnique({
@@ -54,6 +58,10 @@ export class PaymentService {
       return Utils.formatResponseFail('Pago no encontrado');
     }
 
+    if (payment?.status === 'aprobado' && data.status === 'aprobado') {
+      return Utils.formatResponseFail('El pago ya ha sido aprobado');
+    }
+
     const updatePayment = await this.prisma.payment.update({
       where: { id },
       data: {
@@ -65,10 +73,95 @@ export class PaymentService {
       },
     });
 
-    return Utils.formatResponseSuccess(
-      'Estado del pago actualizado exitosamente',
-      Utils.formatDates(updatePayment),
-    );
+    const app = await this.prisma.application.findUnique({
+      where: { id: updatePayment.applicationId },
+    });
+
+    if (updatePayment.status === 'aprobado' && app) {
+      try {
+        const firmaResponse = await this.firmaSeguraService.registerApplication(
+          {
+            identificationNumber: app.identificationNumber,
+            applicantName: app.applicantName,
+            applicantLastName: app.applicantLastName,
+            applicantSecondLastName: app.applicantSecondLastName,
+            fingerCode: app.fingerCode,
+            emailAddress: app.emailAddress,
+            cellphoneNumber: app.cellphoneNumber,
+            city: app.city,
+            province: app.province,
+            address: app.address,
+            countryCode: app.countryCode,
+            companyRuc: app.companyRuc,
+            positionCompany: app.positionCompany,
+            companySocialReason: app.companySocialReason,
+            appointmentExpirationDate: app.appointmentExpirationDate
+              ? new Date(app.appointmentExpirationDate)
+              : null,
+            applicationType: app.applicationType,
+            documentType: app.documentType,
+            referenceTransaction: app.referenceTransaction,
+            period: app.period!,
+            identificationFront: Buffer.from(app.identificationFront).toString(
+              'base64',
+            ),
+            identificationBack: Buffer.from(app.identificationBack).toString(
+              'base64',
+            ),
+            identificationSelfie: Buffer.from(
+              app.identificationSelfie,
+            ).toString('base64'),
+
+            pdfCompanyRuc: app.pdfCompanyRuc
+              ? Buffer.from(app.pdfCompanyRuc).toString('base64')
+              : null,
+            pdfRepresentativeAppointment: app.pdfRepresentativeAppointment
+              ? Buffer.from(app.pdfRepresentativeAppointment).toString('base64')
+              : null,
+            pdfAppointmentAcceptance: app.pdfAppointmentAcceptance
+              ? Buffer.from(app.pdfAppointmentAcceptance).toString('base64')
+              : null,
+            pdfCompanyConstitution: app.pdfCompanyConstitution
+              ? Buffer.from(app.pdfCompanyConstitution).toString('base64')
+              : null,
+            authorizationVideo: app.authorizationVideo
+              ? Buffer.from(app.authorizationVideo).toString('base64')
+              : null,
+          },
+        );
+
+        // Opcional: guardar info devuelta por FirmaSegura
+        await this.prisma.application.update({
+          where: { id: app.id },
+          data: {
+            externalStatus: firmaResponse.status,
+            lastCheckedAt: new Date(),
+            approvedById: data.adminUserId,
+            status: 'Aprobado',
+            approvedAt: new Date(),
+          },
+          include: {
+            approvedBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        });
+
+        return Utils.formatResponseSuccess(
+          'Estado del pago actualizado exitosamente',
+          Utils.formatDates(updatePayment),
+        );
+      } catch (error) {
+        console.error('Error registrando la solicitud en FirmaSegura:', error);
+        return Utils.formatResponseFail(
+          'Error al registrar la solicitud en FirmaSegura',
+        );
+      }
+    }
   }
 
   async getPaymentByApplication(applicationId: number) {

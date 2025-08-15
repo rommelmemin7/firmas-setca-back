@@ -37,10 +37,10 @@ export class ApplicationController {
     return this.applicationService.getApplicationById(id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  /*  @UseGuards(JwtAuthGuard)
   @Patch(':id/approve')
   async approve(@Param('id', ParseIntPipe) id: number, @Req() req) {
     const adminUserId = req.user.sub;
     return this.applicationService.approveApplication(id, adminUserId);
-  }
+  } */
 }

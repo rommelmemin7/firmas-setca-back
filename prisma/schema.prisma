@@ -24,6 +24,7 @@ model Plan {
   id             Int             @id @default(autoincrement())
   name           String
   description    String?
+  period         String?
   price          Float
   durationdays   Int             @default(7)
   status       String            @default("active")
@@ -150,6 +151,8 @@ model Application {
   planId                  Int
   plan                    Plan @relation(fields: [planId], references: [id])
   payment Payment? @relation("ApplicationPayment")
+  externalStatus       String    @default("pending")
+  lastCheckedAt        DateTime? 
 
 
   createdAt               DateTime  @default(now())
