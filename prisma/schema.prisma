@@ -29,7 +29,7 @@ model Plan {
   durationdays   Int             @default(7)
   status       String            @default("active")
   createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  updatedAt      DateTime?        @updatedAt
 
   subscriptions  Subscription[]
   applications   Application[]
