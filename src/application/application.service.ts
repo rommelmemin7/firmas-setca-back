@@ -103,6 +103,10 @@ export class ApplicationService {
         : null,
     }));
 
+    if (!resp || resp.length === 0) {
+      return Utils.formatResponseFail('No se encontraron solicitudes');
+    }
+
     return Utils.formatResponseSuccess(
       'Solicitudes obtenidas exitosamente',
       resp,
