@@ -53,8 +53,6 @@ export class FirmaSeguraService {
             'PENDING',
             'MANUALLY_VALIDATING',
             'AUTOMATICALLY_VALIDATING',
-            'ERROR',
-            'REFUSED',
             'COMPLETED',
           ],
         },
@@ -68,21 +66,38 @@ export class FirmaSeguraService {
         );
 
         console.log(
-          `Actualizando estado de la solicitud ${JSON.stringify(statusResponse)}...`,
+          `Verificando estado de la solicitud ${JSON.stringify(statusResponse)}...`,
         );
-        await this.prisma.application.update({
-          where: { id: app.id },
-          data: {
-            externalStatus: statusResponse.status,
-            observation: `${app.observation ?? ''}${
-              app.observation ? '\n' : ''
-            }${statusResponse.status} - ${new Date().toLocaleDateString('es-EC')}`,
-            lastCheckedAt: new Date(),
-          },
-        });
-        this.logger.log(
-          `Solicitud ${app.referenceTransaction} actualizada a ${statusResponse.status}`,
-        );
+
+        // 👀 Solo actualiza si cambia el estado
+        if (statusResponse.status !== app.externalStatus) {
+          const newObservationEntry = `${statusResponse.status} - ${new Date().toLocaleDateString('es-EC')}`;
+
+          await this.prisma.application.update({
+            where: { id: app.id },
+            data: {
+              externalStatus: statusResponse.status,
+              observation: `${app.observation ?? ''}${app.observation ? '\n' : ''}${newObservationEntry}`,
+              lastCheckedAt: new Date(),
+            },
+          });
+
+          this.logger.log(
+            `Solicitud ${app.referenceTransaction} actualizada a ${statusResponse.status}`,
+          );
+        } else {
+          // 👇 Si no cambió, solo actualiza la fecha de verificación
+          await this.prisma.application.update({
+            where: { id: app.id },
+            data: {
+              lastCheckedAt: new Date(),
+            },
+          });
+
+          this.logger.log(
+            `Solicitud ${app.referenceTransaction} sin cambios de estado (${statusResponse.status})`,
+          );
+        }
       } catch (error) {
         this.logger.error(
           `Error actualizando solicitud ${app.referenceTransaction}: ${error}`,
