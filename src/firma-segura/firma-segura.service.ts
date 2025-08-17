@@ -38,10 +38,27 @@ export class FirmaSeguraService {
     return response.data;
   }
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @Cron(CronExpression.EVERY_30_SECONDS)
   async updateApplicationsStatus() {
     const applications = await this.prisma.application.findMany({
-      where: { externalStatus: 'pending' },
+      where: {
+        externalStatus: {
+          in: [
+            'REGISTERED',
+            'VALIDATING',
+            'REFUSED',
+            'ERROR',
+            'GENERATED',
+            'EXPIRED',
+            'PENDING',
+            'MANUALLY_VALIDATING',
+            'AUTOMATICALLY_VALIDATING',
+            'ERROR',
+            'REFUSED',
+            'COMPLETED',
+          ],
+        },
+      },
     });
 
     for (const app of applications) {
@@ -49,10 +66,17 @@ export class FirmaSeguraService {
         const statusResponse = await this.checkApplicationStatus(
           app.referenceTransaction,
         );
+
+        console.log(
+          `Actualizando estado de la solicitud ${JSON.stringify(statusResponse)}...`,
+        );
         await this.prisma.application.update({
           where: { id: app.id },
           data: {
             externalStatus: statusResponse.status,
+            observation: `${app.observation ?? ''}${
+              app.observation ? '\n' : ''
+            }${statusResponse.status} - ${new Date().toLocaleDateString('es-EC')}`,
             lastCheckedAt: new Date(),
           },
         });

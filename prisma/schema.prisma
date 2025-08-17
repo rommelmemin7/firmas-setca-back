@@ -126,6 +126,8 @@ model Application {
   pdfCompanyConstitution  Bytes?
   authorizationVideo      Bytes?
 
+  observation             String?
+
   approvedById            Int?
   approvedBy              User? @relation("ApplicationApprover", fields: [approvedById], references: [id])
   planId                  Int
