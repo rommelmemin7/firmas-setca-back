@@ -199,6 +199,10 @@ export class ApplicationService {
       where.identificationNumber = identificationNumber;
     }
 
+    where.payment = {
+      status: 'aprobado',
+    };
+
     const results = await this.prisma.application.findMany({
       where,
       include: {
