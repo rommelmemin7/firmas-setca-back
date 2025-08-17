@@ -38,7 +38,7 @@ export class FirmaSeguraService {
     return response.data;
   }
 
-  @Cron(CronExpression.EVERY_30_SECONDS)
+  @Cron(CronExpression.EVERY_10_MINUTES)
   async updateApplicationsStatus() {
     const applications = await this.prisma.application.findMany({
       where: {
