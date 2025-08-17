@@ -76,36 +76,16 @@ model Client {
   applicantName           String    @db.VarChar(100)
   applicantLastName       String?   @db.VarChar(100)
   applicantSecondLastName String?   @db.VarChar(100)
-  fingerCode              String?   @db.VarChar(10)
   emailAddress            String    @db.VarChar(100)
   cellphoneNumber         String    @db.VarChar(20)
-  city                    String    @db.VarChar(100)
-  province                String    @db.VarChar(100)
-  address                 String    @db.VarChar(100)
-  countryCode             String    @db.VarChar(10)
-  companyRuc              String?   @db.VarChar(13)
-  positionCompany         String?   @db.VarChar(100)
-  companySocialReason     String?   @db.VarChar(250)
-  appointmentExpirationDate DateTime?
-  applicationType         String    @db.VarChar(50)
-  documentType            String    @db.VarChar(50)
-  referenceTransaction    String    @db.VarChar(150)
-  period                  String    @db.VarChar(50)
-
-  identificationFront     Bytes
-  identificationBack      Bytes
-  identificationSelfie    Bytes
-
-  pdfCompanyRuc           Bytes?
-  pdfRepresentativeAppointment Bytes?
-  pdfAppointmentAcceptance Bytes?
-  pdfCompanyConstitution  Bytes?
-  authorizationVideo      Bytes?
-
+ 
   approvedById            Int?
   approvedBy              User? @relation("ClientApprover", fields: [approvedById], references: [id])
 
   subscriptions           Subscription[]
+
+  applicationId Int
+  application   Application @relation(fields: [applicationId], references: [id])
 
   status                  String    @default("active")
 
@@ -153,6 +133,8 @@ model Application {
   payment Payment? @relation("ApplicationPayment")
   externalStatus       String    @default("pending")
   lastCheckedAt        DateTime? 
+
+  clients Client[]
 
 
   createdAt               DateTime  @default(now())

@@ -6,6 +6,8 @@ import {
 import { PrismaService } from '../prisma/prisma.service'; // Asumo tienes este servicio
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { Utils } from 'src/_common/utils/utils';
+import { FilterApplicationsDto } from './dto/filtro-fecha-id.dto';
+import { endOfDay, startOfDay } from 'date-fns';
 
 @Injectable()
 export class ApplicationService {
@@ -62,6 +64,7 @@ export class ApplicationService {
           authorizationVideo: dto.authorizationVideo
             ? Buffer.from(dto.authorizationVideo, 'base64')
             : null,
+          createdAt: new Date(),
 
           // approvedById se deja null al crear
         },
@@ -103,9 +106,42 @@ export class ApplicationService {
         : null,
     }));
 
-    if (!resp || resp.length === 0) {
-      return Utils.formatResponseFail('No se encontraron solicitudes');
-    }
+    return Utils.formatResponseSuccess(
+      'Solicitudes obtenidas exitosamente',
+      resp,
+    );
+  }
+
+  async getApplicationsPaymentAprobate() {
+    const app = await this.prisma.application.findMany({
+      where: {
+        payment: {
+          status: 'aprobado',
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        payment: true,
+        approvedBy: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    const resp = app.map((a) => ({
+      ...a,
+      createdAt: a.createdAt.toISOString(),
+      updatedAt: a.updatedAt.toISOString(),
+      approvedAt: a.approvedAt ? a.approvedAt.toISOString() : null,
+      payment: a.payment
+        ? {
+            ...a.payment,
+            createdAt: a.payment.createdAt.toISOString(),
+            updatedAt: a.payment.updatedAt.toISOString(),
+            approvedAt: a.payment.approvedAt
+              ? a.payment.approvedAt.toISOString()
+              : null,
+          }
+        : null,
+    }));
 
     return Utils.formatResponseSuccess(
       'Solicitudes obtenidas exitosamente',
@@ -134,6 +170,51 @@ export class ApplicationService {
         'Solicitud no encontrada: ' + error.message,
       );
     }
+  }
+
+  async filterApplications(filters: FilterApplicationsDto) {
+    const { startDate, endDate, identificationNumber } = filters;
+
+    const where: any = {};
+
+    console.log('Filtros recibidos:', filters);
+
+    // Filtro por fechas de creación
+    if (startDate || endDate) {
+      where.createdAt = {};
+
+      if (startDate) {
+        // Ajusta al inicio del día en UTC
+        where.createdAt.gte = startOfDay(new Date(startDate));
+      }
+
+      if (endDate) {
+        // Ajusta al final del día en UTC
+        where.createdAt.lte = endOfDay(new Date(endDate));
+      }
+    }
+
+    // Filtro por número de identificación
+    if (identificationNumber) {
+      where.identificationNumber = identificationNumber;
+    }
+
+    const results = await this.prisma.application.findMany({
+      where,
+      include: {
+        plan: true,
+        approvedBy: {
+          select: { id: true, name: true, email: true },
+        },
+        payment: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return Utils.formatResponseSuccess(
+      'Solicitudes filtradas obtenidas exitosamente',
+      results,
+    );
   }
 
   /* async approveApplication(id: number, adminUserId: number) {
