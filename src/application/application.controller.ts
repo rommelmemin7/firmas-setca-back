@@ -29,14 +29,21 @@ export class ApplicationController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  async findAll() {
-    return this.applicationService.getAllApplications();
+  async findAll(@Req() req) {
+    const roleId = req.user.role;
+    const idUser = req.user.sub;
+    return this.applicationService.getAllApplications(roleId, idUser);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('approvated')
-  async findAllPaymentApprobated() {
-    return this.applicationService.getApplicationsPaymentAprobate();
+  async findAllPaymentApprobated(@Req() req) {
+    const roleId = req.user.role;
+    const idUser = req.user.sub;
+    return this.applicationService.getApplicationsPaymentAprobate(
+      roleId,
+      idUser,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -46,8 +53,10 @@ export class ApplicationController {
   }
 
   @Post('filter')
-  async filter(@Body() filters: FilterApplicationsDto) {
-    return this.applicationService.filterApplications(filters);
+  async filter(@Body() filters: FilterApplicationsDto, @Req() req) {
+    const roleId = req.user.role;
+    const idUser = req.user.sub;
+    return this.applicationService.filterApplications(filters, roleId, idUser);
   }
   /*  @UseGuards(JwtAuthGuard)
   @Patch(':id/approve')

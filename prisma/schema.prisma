@@ -135,6 +135,7 @@ model Application {
   payment Payment? @relation("ApplicationPayment")
   externalStatus       String    @default("pending")
   lastCheckedAt        DateTime? 
+  idCreador            Int?
 
   clients Client[]
 

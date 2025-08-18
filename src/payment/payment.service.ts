@@ -5,11 +5,19 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Utils } from 'src/_common/utils/utils';
 import { FirmaSeguraService } from 'src/firma-segura/firma-segura.service';
 import { addDays } from 'date-fns';
+import { firstValueFrom } from 'rxjs';
+import { HttpService } from '@nestjs/axios';
+import * as request from 'supertest';
+import { parse } from 'path';
 
 @Injectable()
 export class PaymentService {
+  private readonly apiUrl = process.env['URL_SOLICITUD_DEUNA'];
+  private readonly apiUrlEstatus = process.env['URL_ESTATUS_DEUNA'];
+  private readonly apiUrlCancel = process.env['URL_CANCELACION_DEUNA'];
   constructor(
     private prisma: PrismaService,
+    private readonly httpService: HttpService,
     private firmaSeguraService: FirmaSeguraService,
   ) {}
 
@@ -357,5 +365,118 @@ export class PaymentService {
       'Pago encontrado',
       Utils.formatDates(payment),
     );
+  }
+
+  //deuna
+  async requestPaymentDeuna(idSolicitud: number) {
+    try {
+      const apiKey = process.env['X-API-KEY'];
+      const apiSecret = process.env['X-API-SECRET'];
+
+      const app = await this.prisma.application.findUnique({
+        where: { id: idSolicitud },
+      });
+
+      if (!app) {
+        return Utils.formatResponseFail('La solicitud asociada no existe');
+      }
+
+      const plan = await this.prisma.plan.findUnique({
+        where: { id: app.planId },
+      });
+      if (!plan) {
+        return Utils.formatResponseFail(
+          'El plan asociado a la solicitud no existe',
+        );
+      }
+
+      const headers = {
+        'x-api-key': apiKey,
+        'x-api-secret': apiSecret,
+      };
+
+      const body = {
+        pointOfSale: process.env['ID-CAJA'],
+        qrType: 'dynamic',
+        amount: parseFloat(plan.price.toFixed(2)),
+        detail:
+          'Pago firma plan: ' + plan.description + ' - ' + app.applicantName,
+        internalTransactionReference: app.referenceTransaction,
+        format: '2',
+      };
+
+      const response$ = this.httpService.post(this.apiUrl!, body, { headers });
+
+      const response = await firstValueFrom(response$);
+
+      return Utils.formatResponseSuccess(
+        'Solicitud de pago deUna enviado exitosamente',
+        response.data,
+      );
+    } catch (error) {
+      return Utils.formatResponseFail(
+        'Error al enviar solicitud de pago deUna: ' + error.message,
+      );
+    }
+  }
+  async getPaymentStatusDeuna(transaccionId: string) {
+    const apiKey = process.env['X-API-KEY'];
+    const apiSecret = process.env['X-API-SECRET'];
+    try {
+      const headers = {
+        'x-api-key': apiKey,
+        'x-api-secret': apiSecret,
+      };
+
+      const body = {
+        idTransacionReference: transaccionId,
+        idType: '0',
+      };
+
+      const response$ = this.httpService.post(this.apiUrlEstatus!, body, {
+        headers,
+      });
+
+      const response = await firstValueFrom(response$);
+      return Utils.formatResponseSuccess(
+        'Consulta de pago exitosa',
+        response.data,
+      );
+    } catch (error) {
+      return Utils.formatResponseFail(
+        'Error al consultar estado del pago: ' + error.message,
+      );
+    }
+  }
+
+  async anularPaymentDeuna(transaccionId: string) {
+    const apiKey = process.env['X-API-KEY'];
+    const apiSecret = process.env['X-API-SECRET'];
+
+    try {
+      const headers = {
+        'x-api-key': apiKey,
+        'x-api-secret': apiSecret,
+      };
+
+      const body = {
+        transactionId: transaccionId,
+        pointOfSale: process.env['ID-CAJA'],
+      };
+
+      const response$ = this.httpService.post(this.apiUrlCancel!, body, {
+        headers,
+      });
+
+      const response = await firstValueFrom(response$);
+      return Utils.formatResponseSuccess(
+        'Anulación de pago exitosa',
+        response.data,
+      );
+    } catch (error) {
+      return Utils.formatResponseFail(
+        'Error al anular solicitud de pago: ' + error.message,
+      );
+    }
   }
 }

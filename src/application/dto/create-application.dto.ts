@@ -107,7 +107,10 @@ export class CreateApplicationDto {
 
   @IsOptional()
   authorizationVideo?: string;
-  
+
+  @IsOptional()
+  idCreador?: number;
+
   @IsNotEmpty({ message: 'El planId es obligatorio' })
   @IsInt({ message: 'El planId debe ser un número entero' })
   planId: number;

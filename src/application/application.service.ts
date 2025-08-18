@@ -8,10 +8,14 @@ import { CreateApplicationDto } from './dto/create-application.dto';
 import { Utils } from 'src/_common/utils/utils';
 import { FilterApplicationsDto } from './dto/filtro-fecha-id.dto';
 import { endOfDay, startOfDay } from 'date-fns';
+import { PaymentService } from 'src/payment/payment.service';
 
 @Injectable()
 export class ApplicationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private payment: PaymentService,
+  ) {}
 
   async createApplication(dto: CreateApplicationDto) {
     const plan = await this.prisma.plan.findUnique({
@@ -65,14 +69,31 @@ export class ApplicationService {
             ? Buffer.from(dto.authorizationVideo, 'base64')
             : null,
           createdAt: new Date(),
+          idCreador: dto.idCreador,
 
           // approvedById se deja null al crear
         },
       });
-      return Utils.formatResponseSuccess(
-        'Solicitud creada exitosamente',
-        Utils.formatDates(app),
-      );
+
+      if (app.idCreador == null) {
+        try {
+          const response = await this.payment.requestPaymentDeuna(app.id);
+
+          return Utils.formatResponseSuccess(
+            'Solicitud creada exitosamente',
+            response.data,
+          );
+        } catch (error) {
+          Utils.formatResponseFail(
+            'Error al enviar solicitud de pago deUna: ' + error.message,
+          );
+        }
+      } else {
+        return Utils.formatResponseSuccess(
+          'Solicitud creada exitosamente',
+          Utils.formatDates(app),
+        );
+      }
     } catch (error) {
       throw new BadRequestException(
         'Error creando la solicitud: ' + error.message,
@@ -80,9 +101,10 @@ export class ApplicationService {
     }
   }
 
-  async getAllApplications() {
+  async getAllApplications(role: number, idUser: number) {
     const app = await this.prisma.application.findMany({
       orderBy: { createdAt: 'desc' },
+      where: role == 1 ? {} : { idCreador: idUser },
       include: {
         payment: true,
         approvedBy: { select: { id: true, name: true, email: true } },
@@ -112,12 +134,13 @@ export class ApplicationService {
     );
   }
 
-  async getApplicationsPaymentAprobate() {
+  async getApplicationsPaymentAprobate(role: number, idUser: number) {
     const app = await this.prisma.application.findMany({
       where: {
         payment: {
           status: 'aprobado',
         },
+        ...(role == 1 ? {} : { idCreador: idUser }),
       },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -172,7 +195,11 @@ export class ApplicationService {
     }
   }
 
-  async filterApplications(filters: FilterApplicationsDto) {
+  async filterApplications(
+    filters: FilterApplicationsDto,
+    role: number,
+    idUser: number,
+  ) {
     const { startDate, endDate, identificationNumber } = filters;
 
     const where: any = {};
@@ -185,12 +212,11 @@ export class ApplicationService {
 
       if (startDate) {
         // Ajusta al inicio del día en UTC
-        where.createdAt.gte = startOfDay(new Date(startDate));
+        where.createdAt.gte = Utils.startOfDayUTC(new Date(startDate));
       }
 
       if (endDate) {
-        // Ajusta al final del día en UTC
-        where.createdAt.lte = endOfDay(new Date(endDate));
+        where.createdAt.lte = Utils.endOfDayUTC(new Date(endDate));
       }
     }
 
@@ -201,6 +227,7 @@ export class ApplicationService {
 
     where.payment = {
       status: 'aprobado',
+      ...(role == 1 ? {} : { idCreador: idUser }),
     };
 
     const results = await this.prisma.application.findMany({
@@ -217,7 +244,7 @@ export class ApplicationService {
 
     return Utils.formatResponseSuccess(
       'Solicitudes filtradas obtenidas exitosamente',
-      results,
+      Utils.formatDates(results),
     );
   }
 

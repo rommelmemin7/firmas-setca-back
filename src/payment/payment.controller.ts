@@ -40,4 +40,19 @@ export class PaymentController {
   ) {
     return this.paymentService.getPaymentByApplication(applicationId);
   }
+
+  @Post('request-deuna')
+  async requestPayment(@Body('idSolicitud') idSolicitud: number) {
+    return this.paymentService.requestPaymentDeuna(idSolicitud);
+  }
+
+  @Post('info-deuna')
+  async infoPayment(@Body('transaccionId') transaccionId: string) {
+    return this.paymentService.getPaymentStatusDeuna(transaccionId);
+  }
+
+  @Post('cancel-deuna')
+  async cancelacionDeuna(@Body('transaccionId') transaccionId: string) {
+    return this.paymentService.anularPaymentDeuna(transaccionId);
+  }
 }

@@ -44,6 +44,7 @@ export class FirmaSeguraService {
       where: {
         externalStatus: {
           in: [
+            'pending',
             'REGISTERED',
             'VALIDATING',
             'REFUSED',
@@ -64,12 +65,6 @@ export class FirmaSeguraService {
         const statusResponse = await this.checkApplicationStatus(
           app.referenceTransaction,
         );
-
-        console.log(
-          `Verificando estado de la solicitud ${JSON.stringify(statusResponse)}...`,
-        );
-
-        // 👀 Solo actualiza si cambia el estado
         if (statusResponse.status !== app.externalStatus) {
           const newObservationEntry = `${statusResponse.status} - ${new Date().toLocaleDateString('es-EC')}`;
 

@@ -132,9 +132,36 @@ export class Utils {
     }
   }
 
+  static startOfDayUTC(date: Date) {
+    return new Date(
+      Date.UTC(
+        date.getUTCFullYear(),
+        date.getUTCMonth(),
+        date.getUTCDate(),
+        0,
+        0,
+        0,
+      ),
+    );
+  }
+
+  static endOfDayUTC(date: Date) {
+    return new Date(
+      Date.UTC(
+        date.getUTCFullYear(),
+        date.getUTCMonth(),
+        date.getUTCDate(),
+        23,
+        59,
+        59,
+        999,
+      ),
+    );
+  }
+
   static generateReferenceTransaction(prefix = 'APP'): string {
-    const timestamp = Date.now(); // milisegundos desde 1970
-    const uuid = uuidv4(); // UUID v4 aleatorio
-    return `${prefix}-${timestamp}-${uuid}`;
+    const timestamp = Date.now().toString().slice(-8); // últimos 8 dígitos
+    const shortUuid = uuidv4().replace(/-/g, '').slice(0, 6); // 6 caracteres
+    return `${prefix}${timestamp}${shortUuid}`.slice(0, 19); // máximo 20 caracteres
   }
 }
