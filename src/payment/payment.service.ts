@@ -12,21 +12,14 @@ import { parse } from 'path';
 
 @Injectable()
 export class PaymentService {
-<<<<<<< HEAD
-  private readonly apiUrl = process.env['URL_SOLICITUD_DEUNA'];
-  private readonly apiUrlEstatus = process.env['URL_ESTATUS_DEUNA'];
-  private readonly apiUrlCancel = process.env['URL_CANCELACION_DEUNA'];
-  constructor(
-    private prisma: PrismaService,
-    private readonly httpService: HttpService,
-    private firmaSeguraService: FirmaSeguraService,
-  ) {}
-=======
+	private readonly apiUrl = process.env['URL_SOLICITUD_DEUNA'];
+	private readonly apiUrlEstatus = process.env['URL_ESTATUS_DEUNA'];
+	private readonly apiUrlCancel = process.env['URL_CANCELACION_DEUNA'];
 	constructor(
 		private prisma: PrismaService,
+		private readonly httpService: HttpService,
 		private firmaSeguraService: FirmaSeguraService
 	) {}
->>>>>>> 560b063df89f90a244b7d0a68fad520d3ee2dafe
 
 	async createPayment(data: CreatePaymentDto) {
 		const appExists = await this.prisma.application.findUnique({
@@ -63,149 +56,6 @@ export class PaymentService {
 
 		return Utils.formatResponseSuccess('Pago creado exitosamente', Utils.formatDates(payment));
 	}
-
-	/*  async updateStatus(id: number, data: UpdatePaymentStatusDto) {
-    const payment = await this.prisma.payment.findUnique({ where: { id } });
-
-    if (!payment) {
-      return Utils.formatResponseFail('Pago no encontrado');
-    }
-
-    if (payment?.status === 'aprobado' && data.status === 'aprobado') {
-      return Utils.formatResponseFail('El pago ya ha sido aprobado');
-    }
-
-    const updatePayment = await this.prisma.payment.update({
-      where: { id },
-      data: {
-        status: data.status,
-        approvedAt:
-          data.status === 'aprobado' || data.status === 'rechazado'
-            ? new Date()
-            : null,
-      },
-    });
-
-    const app = await this.prisma.application.findUnique({
-      where: { id: updatePayment.applicationId },
-    });
-
-    if (updatePayment.status === 'aprobado' && app) {
-      try {
-        const client = await this.prisma.client.create({
-          data: {
-            identificationNumber: app.identificationNumber,
-            applicantName: app.applicantName,
-            applicantLastName: app.applicantLastName,
-            applicantSecondLastName: app.applicantSecondLastName,
-            emailAddress: app.emailAddress,
-            cellphoneNumber: app.cellphoneNumber,
-            applicationId: app.id,
-            approvedById: data.adminUserId,
-          },
-        });
-
-        const plan = await this.prisma.plan.findUnique({
-          where: { id: app.planId },
-        });
-        // Calcular fechas
-        const startDate = new Date();
-        const endDate = new Date();
-        endDate.setDate(startDate.getDate() + plan!.durationdays);
-
-        // Crear suscripción
-        await this.prisma.subscription.create({
-          data: {
-            clientId: client.id,
-            planId: plan!.id,
-            startDate,
-            endDate,
-          },
-        });
-
-        const firmaResponse = await this.firmaSeguraService.registerApplication(
-          {
-            identificationNumber: app.identificationNumber,
-            applicantName: app.applicantName,
-            applicantLastName: app.applicantLastName,
-            applicantSecondLastName: app.applicantSecondLastName,
-            fingerCode: app.fingerCode,
-            emailAddress: app.emailAddress,
-            cellphoneNumber: app.cellphoneNumber,
-            city: app.city,
-            province: app.province,
-            address: app.address,
-            countryCode: app.countryCode,
-            companyRuc: app.companyRuc,
-            positionCompany: app.positionCompany,
-            companySocialReason: app.companySocialReason,
-            appointmentExpirationDate: app.appointmentExpirationDate
-              ? new Date(app.appointmentExpirationDate)
-              : null,
-            applicationType: app.applicationType,
-            documentType: app.documentType,
-            referenceTransaction: app.referenceTransaction,
-            period: app.period!,
-            identificationFront: Buffer.from(app.identificationFront).toString(
-              'base64',
-            ),
-            identificationBack: Buffer.from(app.identificationBack).toString(
-              'base64',
-            ),
-            identificationSelfie: Buffer.from(
-              app.identificationSelfie,
-            ).toString('base64'),
-
-            pdfCompanyRuc: app.pdfCompanyRuc
-              ? Buffer.from(app.pdfCompanyRuc).toString('base64')
-              : null,
-            pdfRepresentativeAppointment: app.pdfRepresentativeAppointment
-              ? Buffer.from(app.pdfRepresentativeAppointment).toString('base64')
-              : null,
-            pdfAppointmentAcceptance: app.pdfAppointmentAcceptance
-              ? Buffer.from(app.pdfAppointmentAcceptance).toString('base64')
-              : null,
-            pdfCompanyConstitution: app.pdfCompanyConstitution
-              ? Buffer.from(app.pdfCompanyConstitution).toString('base64')
-              : null,
-            authorizationVideo: app.authorizationVideo
-              ? Buffer.from(app.authorizationVideo).toString('base64')
-              : null,
-          },
-        );
-
-        await this.prisma.application.update({
-          where: { id: app.id },
-          data: {
-            externalStatus: firmaResponse.status,
-            lastCheckedAt: new Date(),
-            approvedById: data.adminUserId,
-            status: 'Aprobado',
-            approvedAt: new Date(),
-          },
-          include: {
-            approvedBy: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        });
-
-        return Utils.formatResponseSuccess(
-          'Estado del pago actualizado exitosamente',
-          Utils.formatDates(updatePayment),
-        );
-      } catch (error) {
-        console.error('Error registrando la solicitud en FirmaSegura:', error);
-        return Utils.formatResponseFail(
-          'Error al registrar la solicitud en FirmaSegura',
-        );
-      }
-    }
-  } */
 
 	async updateStatus(id: number, data: UpdatePaymentStatusDto) {
 		const payment = await this.prisma.payment.findUnique({ where: { id } });
@@ -332,122 +182,101 @@ export class PaymentService {
 			return Utils.formatResponseFail('Pago no encontrado');
 		}
 
-    return Utils.formatResponseSuccess(
-      'Pago encontrado',
-      Utils.formatDates(payment),
-    );
-  }
+		return Utils.formatResponseSuccess('Pago encontrado', Utils.formatDates(payment));
+	}
 
-  //deuna
-  async requestPaymentDeuna(idSolicitud: number) {
-    try {
-      const apiKey = process.env['X-API-KEY'];
-      const apiSecret = process.env['X-API-SECRET'];
+	//deuna
+	async requestPaymentDeuna(idSolicitud: number) {
+		try {
+			const apiKey = process.env['X-API-KEY'];
+			const apiSecret = process.env['X-API-SECRET'];
 
-      const app = await this.prisma.application.findUnique({
-        where: { id: idSolicitud },
-      });
+			const app = await this.prisma.application.findUnique({
+				where: { id: idSolicitud },
+			});
 
-      if (!app) {
-        return Utils.formatResponseFail('La solicitud asociada no existe');
-      }
+			if (!app) {
+				return Utils.formatResponseFail('La solicitud asociada no existe');
+			}
 
-      const plan = await this.prisma.plan.findUnique({
-        where: { id: app.planId },
-      });
-      if (!plan) {
-        return Utils.formatResponseFail(
-          'El plan asociado a la solicitud no existe',
-        );
-      }
+			const plan = await this.prisma.plan.findUnique({
+				where: { id: app.planId },
+			});
+			if (!plan) {
+				return Utils.formatResponseFail('El plan asociado a la solicitud no existe');
+			}
 
-      const headers = {
-        'x-api-key': apiKey,
-        'x-api-secret': apiSecret,
-      };
+			const headers = {
+				'x-api-key': apiKey,
+				'x-api-secret': apiSecret,
+			};
 
-      const body = {
-        pointOfSale: process.env['ID-CAJA'],
-        qrType: 'dynamic',
-        amount: parseFloat(plan.price.toFixed(2)),
-        detail:
-          'Pago firma plan: ' + plan.description + ' - ' + app.applicantName,
-        internalTransactionReference: app.referenceTransaction,
-        format: '2',
-      };
+			const body = {
+				pointOfSale: process.env['ID-CAJA'],
+				qrType: 'dynamic',
+				amount: parseFloat(plan.price.toFixed(2)),
+				detail: 'Pago firma plan: ' + plan.description + ' - ' + app.applicantName,
+				internalTransactionReference: app.referenceTransaction,
+				format: '2',
+			};
 
-      const response$ = this.httpService.post(this.apiUrl!, body, { headers });
+			const response$ = this.httpService.post(this.apiUrl!, body, { headers });
 
-      const response = await firstValueFrom(response$);
+			const response = await firstValueFrom(response$);
 
-      return Utils.formatResponseSuccess(
-        'Solicitud de pago deUna enviado exitosamente',
-        response.data,
-      );
-    } catch (error) {
-      return Utils.formatResponseFail(
-        'Error al enviar solicitud de pago deUna: ' + error.message,
-      );
-    }
-  }
-  async getPaymentStatusDeuna(transaccionId: string) {
-    const apiKey = process.env['X-API-KEY'];
-    const apiSecret = process.env['X-API-SECRET'];
-    try {
-      const headers = {
-        'x-api-key': apiKey,
-        'x-api-secret': apiSecret,
-      };
+			return Utils.formatResponseSuccess('Solicitud de pago deUna enviado exitosamente', response.data);
+		} catch (error) {
+			return Utils.formatResponseFail('Error al enviar solicitud de pago deUna: ' + error.message);
+		}
+	}
+	async getPaymentStatusDeuna(transaccionId: string) {
+		const apiKey = process.env['X-API-KEY'];
+		const apiSecret = process.env['X-API-SECRET'];
+		try {
+			const headers = {
+				'x-api-key': apiKey,
+				'x-api-secret': apiSecret,
+			};
 
-      const body = {
-        idTransacionReference: transaccionId,
-        idType: '0',
-      };
+			const body = {
+				idTransacionReference: transaccionId,
+				idType: '0',
+			};
 
-      const response$ = this.httpService.post(this.apiUrlEstatus!, body, {
-        headers,
-      });
+			const response$ = this.httpService.post(this.apiUrlEstatus!, body, {
+				headers,
+			});
 
-      const response = await firstValueFrom(response$);
-      return Utils.formatResponseSuccess(
-        'Consulta de pago exitosa',
-        response.data,
-      );
-    } catch (error) {
-      return Utils.formatResponseFail(
-        'Error al consultar estado del pago: ' + error.message,
-      );
-    }
-  }
+			const response = await firstValueFrom(response$);
+			return Utils.formatResponseSuccess('Consulta de pago exitosa', response.data);
+		} catch (error) {
+			return Utils.formatResponseFail('Error al consultar estado del pago: ' + error.message);
+		}
+	}
 
-  async anularPaymentDeuna(transaccionId: string) {
-    const apiKey = process.env['X-API-KEY'];
-    const apiSecret = process.env['X-API-SECRET'];
+	async anularPaymentDeuna(transaccionId: string) {
+		const apiKey = process.env['X-API-KEY'];
+		const apiSecret = process.env['X-API-SECRET'];
 
-    try {
-      const headers = {
-        'x-api-key': apiKey,
-        'x-api-secret': apiSecret,
-      };
+		try {
+			const headers = {
+				'x-api-key': apiKey,
+				'x-api-secret': apiSecret,
+			};
 
-      const body = {
-        transactionId: transaccionId,
-        pointOfSale: process.env['ID-CAJA'],
-      };
+			const body = {
+				transactionId: transaccionId,
+				pointOfSale: process.env['ID-CAJA'],
+			};
 
-      const response$ = this.httpService.post(this.apiUrlCancel!, body, {
-        headers,
-      });
+			const response$ = this.httpService.post(this.apiUrlCancel!, body, {
+				headers,
+			});
 
-      const response = await firstValueFrom(response$);
-      return Utils.formatResponseSuccess(
-        'Anulación de pago exitosa',
-        response.data,
-      );
-    } catch (error) {
-      return Utils.formatResponseFail(
-        'Error al anular solicitud de pago: ' + error.message,
-      );
-    }
-  }
+			const response = await firstValueFrom(response$);
+			return Utils.formatResponseSuccess('Anulación de pago exitosa', response.data);
+		} catch (error) {
+			return Utils.formatResponseFail('Error al anular solicitud de pago: ' + error.message);
+		}
+	}
 }

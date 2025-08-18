@@ -15,24 +15,21 @@ export class ApplicationController {
 		return this.applicationService.createApplication(dto);
 	}
 
-  @UseGuards(JwtAuthGuard)
-  @Get()
-  async findAll(@Req() req) {
-    const roleId = req.user.role;
-    const idUser = req.user.sub;
-    return this.applicationService.getAllApplications(roleId, idUser);
-  }
+	@UseGuards(JwtAuthGuard)
+	@Get()
+	async findAll(@Req() req) {
+		const roleId = req.user.role;
+		const idUser = req.user.sub;
+		return this.applicationService.getAllApplications(roleId, idUser);
+	}
 
-  @UseGuards(JwtAuthGuard)
-  @Get('approvated')
-  async findAllPaymentApprobated(@Req() req) {
-    const roleId = req.user.role;
-    const idUser = req.user.sub;
-    return this.applicationService.getApplicationsPaymentAprobate(
-      roleId,
-      idUser,
-    );
-  }
+	@UseGuards(JwtAuthGuard)
+	@Get('approvated')
+	async findAllPaymentApprobated(@Req() req) {
+		const roleId = req.user.role;
+		const idUser = req.user.sub;
+		return this.applicationService.getApplicationsPaymentAprobate(roleId, idUser);
+	}
 
 	@UseGuards(JwtAuthGuard)
 	@Get(':id')
@@ -40,21 +37,13 @@ export class ApplicationController {
 		return this.applicationService.getApplicationById(id);
 	}
 
-<<<<<<< HEAD
-  @Post('filter')
-  async filter(@Body() filters: FilterApplicationsDto, @Req() req) {
-    const roleId = req.user.role;
-    const idUser = req.user.sub;
-    return this.applicationService.filterApplications(filters, roleId, idUser);
-  }
-  /*  @UseGuards(JwtAuthGuard)
-=======
 	@Post('filter')
-	async filter(@Body() filters: FilterApplicationsDto) {
-		return this.applicationService.filterApplications(filters);
+	async filter(@Body() filters: FilterApplicationsDto, @Req() req) {
+		const roleId = req.user.role;
+		const idUser = req.user.sub;
+		return this.applicationService.filterApplications(filters, roleId, idUser);
 	}
 	/*  @UseGuards(JwtAuthGuard)
->>>>>>> 560b063df89f90a244b7d0a68fad520d3ee2dafe
   @Patch(':id/approve')
   async approve(@Param('id', ParseIntPipe) id: number, @Req() req) {
     const adminUserId = req.user.sub;
