@@ -12,18 +12,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { FirmaSeguraModule } from './firma-segura/firma-segura.module';
 
 @Module({
-  imports: [
-    PrismaModule,
-    AuthModule,
-    UsersModule,
-    ApplicationModule,
-    ClientModule,
-    PaymentModule,
-    PlanModule,
-    ScheduleModule.forRoot(),
-    FirmaSeguraModule,
-  ],
-  controllers: [AppController],
-  providers: [AppService],
+	imports: [PrismaModule, AuthModule, UsersModule, ApplicationModule, ClientModule, PaymentModule, PlanModule, ScheduleModule.forRoot(), FirmaSeguraModule],
+	controllers: [AppController],
+	providers: [AppService],
 })
 export class AppModule {}

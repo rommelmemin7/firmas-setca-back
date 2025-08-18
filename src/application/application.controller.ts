@@ -1,16 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Param,
-  ParseIntPipe,
-  Patch,
-  UseGuards,
-  Req,
-  UseInterceptors,
-  Query,
-} from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, ParseIntPipe, Patch, UseGuards, Req, UseInterceptors, Query } from '@nestjs/common';
 import { ApplicationService } from './application.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { JwtAuthGuard } from 'src/_common/guards/jwt-auth.guard';
@@ -20,12 +8,12 @@ import { FilterApplicationsDto } from './dto/filtro-fecha-id.dto';
 @Controller('applications')
 @UseInterceptors(BufferToBase64Interceptor)
 export class ApplicationController {
-  constructor(private readonly applicationService: ApplicationService) {}
+	constructor(private readonly applicationService: ApplicationService) {}
 
-  @Post()
-  async create(@Body() dto: CreateApplicationDto) {
-    return this.applicationService.createApplication(dto);
-  }
+	@Post()
+	async create(@Body() dto: CreateApplicationDto) {
+		return this.applicationService.createApplication(dto);
+	}
 
   @UseGuards(JwtAuthGuard)
   @Get()
@@ -46,12 +34,13 @@ export class ApplicationController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.applicationService.getApplicationById(id);
-  }
+	@UseGuards(JwtAuthGuard)
+	@Get(':id')
+	async findOne(@Param('id', ParseIntPipe) id: number) {
+		return this.applicationService.getApplicationById(id);
+	}
 
+<<<<<<< HEAD
   @Post('filter')
   async filter(@Body() filters: FilterApplicationsDto, @Req() req) {
     const roleId = req.user.role;
@@ -59,6 +48,13 @@ export class ApplicationController {
     return this.applicationService.filterApplications(filters, roleId, idUser);
   }
   /*  @UseGuards(JwtAuthGuard)
+=======
+	@Post('filter')
+	async filter(@Body() filters: FilterApplicationsDto) {
+		return this.applicationService.filterApplications(filters);
+	}
+	/*  @UseGuards(JwtAuthGuard)
+>>>>>>> 560b063df89f90a244b7d0a68fad520d3ee2dafe
   @Patch(':id/approve')
   async approve(@Param('id', ParseIntPipe) id: number, @Req() req) {
     const adminUserId = req.user.sub;

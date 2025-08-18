@@ -1,12 +1,12 @@
 {
   "name": "backend-firmas",
-  "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "version": "0.1.00",
+  "description": "Firmas Backend",
+  "author": "Rommel Guano - Setca Group",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
-    "build": "nest build",
+    "build": "echo \"Compilando PRISMA\" && npx prisma generate && echo \"Compilando SOFTWARE\" && nest build && echo \"REINICIANDO SERVIDORES\" && pm2 restart firmas",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",

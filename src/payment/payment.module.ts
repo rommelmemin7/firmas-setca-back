@@ -6,9 +6,9 @@ import { FirmaSeguraModule } from 'src/firma-segura/firma-segura.module';
 import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  providers: [PaymentService, PrismaService],
-  controllers: [PaymentController],
-  imports: [FirmaSeguraModule, HttpModule],
-  exports: [PaymentService],
+	providers: [PaymentService, PrismaService],
+	controllers: [PaymentController],
+	imports: [FirmaSeguraModule, HttpModule],
+	exports: [PaymentService],
 })
 export class PaymentModule {}

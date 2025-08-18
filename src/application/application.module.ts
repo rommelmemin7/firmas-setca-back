@@ -5,8 +5,8 @@ import { PaymentService } from 'src/payment/payment.service';
 import { PaymentModule } from 'src/payment/payment.module';
 
 @Module({
-  providers: [ApplicationService],
-  controllers: [ApplicationController],
-  imports: [PaymentModule],
+	providers: [ApplicationService],
+	controllers: [ApplicationController],
+	imports: [PaymentModule],
 })
 export class ApplicationModule {}
