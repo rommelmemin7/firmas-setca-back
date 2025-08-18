@@ -16,7 +16,7 @@ export class PlanService {
 
 	async findAll() {
 		const plans = await this.prisma.plan.findMany({
-			orderBy: { createdAt: 'desc' },
+			orderBy: { durationdays: 'asc' },
 		});
 		return Utils.formatResponseSuccess('Planes obtenidos exitosamente', plans);
 	}
