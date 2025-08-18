@@ -4,11 +4,11 @@ import { JwtAuthGuard } from 'src/_common/guards/jwt-auth.guard';
 
 @Controller('clients')
 export class ClientController {
-  constructor(private readonly clientService: ClientService) {}
-  
-  @UseGuards(JwtAuthGuard) 
-  @Get()
-  async getAllClients() {
-    return this.clientService.getClientsWithPlanAndRemainingTime();
-  }
+	constructor(private readonly clientService: ClientService) {}
+
+	@UseGuards(JwtAuthGuard)
+	@Get()
+	async getAllClients() {
+		return this.clientService.getClientsWithPlanAndRemainingTime();
+	}
 }

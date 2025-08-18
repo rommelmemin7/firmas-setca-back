@@ -17,7 +17,7 @@ CREATE TABLE `Plan` (
     `durationdays` INTEGER NOT NULL DEFAULT 7,
     `status` VARCHAR(191) NOT NULL DEFAULT 'active',
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updatedAt` DATETIME(3) NOT NULL,
+    `updatedAt` DATETIME(3) NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -59,30 +59,10 @@ CREATE TABLE `Client` (
     `applicantName` VARCHAR(100) NOT NULL,
     `applicantLastName` VARCHAR(100) NULL,
     `applicantSecondLastName` VARCHAR(100) NULL,
-    `fingerCode` VARCHAR(10) NULL,
     `emailAddress` VARCHAR(100) NOT NULL,
     `cellphoneNumber` VARCHAR(20) NOT NULL,
-    `city` VARCHAR(100) NOT NULL,
-    `province` VARCHAR(100) NOT NULL,
-    `address` VARCHAR(100) NOT NULL,
-    `countryCode` VARCHAR(10) NOT NULL,
-    `companyRuc` VARCHAR(13) NULL,
-    `positionCompany` VARCHAR(100) NULL,
-    `companySocialReason` VARCHAR(250) NULL,
-    `appointmentExpirationDate` DATETIME(3) NULL,
-    `applicationType` VARCHAR(50) NOT NULL,
-    `documentType` VARCHAR(50) NOT NULL,
-    `referenceTransaction` VARCHAR(150) NOT NULL,
-    `period` VARCHAR(50) NOT NULL,
-    `identificationFront` LONGBLOB NOT NULL,
-    `identificationBack` LONGBLOB NOT NULL,
-    `identificationSelfie` LONGBLOB NOT NULL,
-    `pdfCompanyRuc` LONGBLOB NULL,
-    `pdfRepresentativeAppointment` LONGBLOB NULL,
-    `pdfAppointmentAcceptance` LONGBLOB NULL,
-    `pdfCompanyConstitution` LONGBLOB NULL,
-    `authorizationVideo` LONGBLOB NULL,
     `approvedById` INTEGER NULL,
+    `applicationId` INTEGER NOT NULL,
     `status` VARCHAR(191) NOT NULL DEFAULT 'active',
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
@@ -121,6 +101,7 @@ CREATE TABLE `Application` (
     `pdfAppointmentAcceptance` LONGBLOB NULL,
     `pdfCompanyConstitution` LONGBLOB NULL,
     `authorizationVideo` LONGBLOB NULL,
+    `observation` TEXT NULL,
     `approvedById` INTEGER NULL,
     `planId` INTEGER NOT NULL,
     `externalStatus` VARCHAR(191) NOT NULL DEFAULT 'pending',
@@ -169,6 +150,9 @@ ALTER TABLE `User` ADD CONSTRAINT `User_roleId_fkey` FOREIGN KEY (`roleId`) REFE
 
 -- AddForeignKey
 ALTER TABLE `Client` ADD CONSTRAINT `Client_approvedById_fkey` FOREIGN KEY (`approvedById`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Client` ADD CONSTRAINT `Client_applicationId_fkey` FOREIGN KEY (`applicationId`) REFERENCES `Application`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Application` ADD CONSTRAINT `Application_approvedById_fkey` FOREIGN KEY (`approvedById`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

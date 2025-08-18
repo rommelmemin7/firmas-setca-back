@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service'; // Asumo tienes este servicio
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { Utils } from 'src/_common/utils/utils';
@@ -11,217 +7,182 @@ import { endOfDay, startOfDay } from 'date-fns';
 
 @Injectable()
 export class ApplicationService {
-  constructor(private readonly prisma: PrismaService) {}
+	constructor(private readonly prisma: PrismaService) {}
 
-  async createApplication(dto: CreateApplicationDto) {
-    const plan = await this.prisma.plan.findUnique({
-      where: { id: dto.planId },
-    });
-    if (!plan) {
-      throw new BadRequestException('El plan especificado no existe');
-    }
-    try {
-      const app = await this.prisma.application.create({
-        data: {
-          status: 'pending',
-          planId: dto.planId,
-          identificationNumber: dto.identificationNumber,
-          applicantName: dto.applicantName,
-          applicantLastName: dto.applicantLastName,
-          applicantSecondLastName: dto.applicantSecondLastName,
-          fingerCode: dto.fingerCode,
-          emailAddress: dto.emailAddress,
-          cellphoneNumber: dto.cellphoneNumber,
-          city: dto.city,
-          province: dto.province,
-          address: dto.address,
-          countryCode: dto.countryCode,
-          companyRuc: dto.companyRuc,
-          positionCompany: dto.positionCompany,
-          companySocialReason: dto.companySocialReason,
-          appointmentExpirationDate: dto.appointmentExpirationDate
-            ? new Date(dto.appointmentExpirationDate)
-            : null,
-          applicationType: dto.applicationType,
-          documentType: dto.documentType,
-          referenceTransaction: Utils.generateReferenceTransaction('REF-TX'),
-          period: plan.period!,
-          identificationFront: Buffer.from(dto.identificationFront, 'base64'),
-          identificationBack: Buffer.from(dto.identificationBack, 'base64'),
-          identificationSelfie: Buffer.from(dto.identificationSelfie, 'base64'),
-          pdfCompanyRuc: dto.pdfCompanyRuc
-            ? Buffer.from(dto.pdfCompanyRuc, 'base64')
-            : null,
-          pdfRepresentativeAppointment: dto.pdfRepresentativeAppointment
-            ? Buffer.from(dto.pdfRepresentativeAppointment, 'base64')
-            : null,
-          pdfAppointmentAcceptance: dto.pdfAppointmentAcceptance
-            ? Buffer.from(dto.pdfAppointmentAcceptance, 'base64')
-            : null,
-          pdfCompanyConstitution: dto.pdfCompanyConstitution
-            ? Buffer.from(dto.pdfCompanyConstitution, 'base64')
-            : null,
-          authorizationVideo: dto.authorizationVideo
-            ? Buffer.from(dto.authorizationVideo, 'base64')
-            : null,
-          createdAt: new Date(),
+	async createApplication(dto: CreateApplicationDto) {
+		const plan = await this.prisma.plan.findUnique({
+			where: { id: dto.planId },
+		});
+		if (!plan) {
+			throw new BadRequestException('El plan especificado no existe');
+		}
+		try {
+			const app = await this.prisma.application.create({
+				data: {
+					status: 'pending',
+					planId: dto.planId,
+					identificationNumber: dto.identificationNumber,
+					applicantName: dto.applicantName,
+					applicantLastName: dto.applicantLastName,
+					applicantSecondLastName: dto.applicantSecondLastName,
+					fingerCode: dto.fingerCode,
+					emailAddress: dto.emailAddress,
+					cellphoneNumber: dto.cellphoneNumber,
+					city: dto.city,
+					province: dto.province,
+					address: dto.address,
+					countryCode: dto.countryCode,
+					companyRuc: dto.companyRuc,
+					positionCompany: dto.positionCompany,
+					companySocialReason: dto.companySocialReason,
+					appointmentExpirationDate: dto.appointmentExpirationDate ? new Date(dto.appointmentExpirationDate) : null,
+					applicationType: dto.applicationType,
+					documentType: dto.documentType,
+					referenceTransaction: Utils.generateReferenceTransaction('REF-TX'),
+					period: plan.period!,
+					identificationFront: Buffer.from(dto.identificationFront, 'base64'),
+					identificationBack: Buffer.from(dto.identificationBack, 'base64'),
+					identificationSelfie: Buffer.from(dto.identificationSelfie, 'base64'),
+					pdfCompanyRuc: dto.pdfCompanyRuc ? Buffer.from(dto.pdfCompanyRuc, 'base64') : null,
+					pdfRepresentativeAppointment: dto.pdfRepresentativeAppointment ? Buffer.from(dto.pdfRepresentativeAppointment, 'base64') : null,
+					pdfAppointmentAcceptance: dto.pdfAppointmentAcceptance ? Buffer.from(dto.pdfAppointmentAcceptance, 'base64') : null,
+					pdfCompanyConstitution: dto.pdfCompanyConstitution ? Buffer.from(dto.pdfCompanyConstitution, 'base64') : null,
+					authorizationVideo: dto.authorizationVideo ? Buffer.from(dto.authorizationVideo, 'base64') : null,
+					createdAt: new Date(),
 
-          // approvedById se deja null al crear
-        },
-      });
-      return Utils.formatResponseSuccess(
-        'Solicitud creada exitosamente',
-        Utils.formatDates(app),
-      );
-    } catch (error) {
-      throw new BadRequestException(
-        'Error creando la solicitud: ' + error.message,
-      );
-    }
-  }
+					// approvedById se deja null al crear
+				},
+			});
+			return Utils.formatResponseSuccess('Solicitud creada exitosamente', Utils.formatDates(app));
+		} catch (error) {
+			throw new BadRequestException('Error creando la solicitud: ' + error.message);
+		}
+	}
 
-  async getAllApplications() {
-    const app = await this.prisma.application.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        payment: true,
-        approvedBy: { select: { id: true, name: true, email: true } },
-      },
-    });
+	async getAllApplications() {
+		const app = await this.prisma.application.findMany({
+			orderBy: { createdAt: 'desc' },
+			include: {
+				payment: true,
+				approvedBy: { select: { id: true, name: true, email: true } },
+			},
+		});
 
-    const resp = app.map((a) => ({
-      ...a,
-      createdAt: a.createdAt.toISOString(),
-      updatedAt: a.updatedAt.toISOString(),
-      approvedAt: a.approvedAt ? a.approvedAt.toISOString() : null,
-      payment: a.payment
-        ? {
-            ...a.payment,
-            createdAt: a.payment.createdAt.toISOString(),
-            updatedAt: a.payment.updatedAt.toISOString(),
-            approvedAt: a.payment.approvedAt
-              ? a.payment.approvedAt.toISOString()
-              : null,
-          }
-        : null,
-    }));
+		const resp = app.map((a) => ({
+			...a,
+			createdAt: a.createdAt.toISOString(),
+			updatedAt: a.updatedAt.toISOString(),
+			approvedAt: a.approvedAt ? a.approvedAt.toISOString() : null,
+			payment: a.payment
+				? {
+						...a.payment,
+						createdAt: a.payment.createdAt.toISOString(),
+						updatedAt: a.payment.updatedAt.toISOString(),
+						approvedAt: a.payment.approvedAt ? a.payment.approvedAt.toISOString() : null,
+					}
+				: null,
+		}));
 
-    return Utils.formatResponseSuccess(
-      'Solicitudes obtenidas exitosamente',
-      resp,
-    );
-  }
+		return Utils.formatResponseSuccess('Solicitudes obtenidas exitosamente', resp);
+	}
 
-  async getApplicationsPaymentAprobate() {
-    const app = await this.prisma.application.findMany({
-      where: {
-        payment: {
-          status: 'aprobado',
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        payment: true,
-        approvedBy: { select: { id: true, name: true, email: true } },
-      },
-    });
+	async getApplicationsPaymentAprobate() {
+		const app = await this.prisma.application.findMany({
+			where: {
+				payment: {
+					status: 'aprobado',
+				},
+			},
+			orderBy: { createdAt: 'desc' },
+			include: {
+				payment: true,
+				approvedBy: { select: { id: true, name: true, email: true } },
+			},
+		});
 
-    const resp = app.map((a) => ({
-      ...a,
-      createdAt: a.createdAt.toISOString(),
-      updatedAt: a.updatedAt.toISOString(),
-      approvedAt: a.approvedAt ? a.approvedAt.toISOString() : null,
-      payment: a.payment
-        ? {
-            ...a.payment,
-            createdAt: a.payment.createdAt.toISOString(),
-            updatedAt: a.payment.updatedAt.toISOString(),
-            approvedAt: a.payment.approvedAt
-              ? a.payment.approvedAt.toISOString()
-              : null,
-          }
-        : null,
-    }));
+		const resp = app.map((a) => ({
+			...a,
+			createdAt: a.createdAt.toISOString(),
+			updatedAt: a.updatedAt.toISOString(),
+			approvedAt: a.approvedAt ? a.approvedAt.toISOString() : null,
+			payment: a.payment
+				? {
+						...a.payment,
+						createdAt: a.payment.createdAt.toISOString(),
+						updatedAt: a.payment.updatedAt.toISOString(),
+						approvedAt: a.payment.approvedAt ? a.payment.approvedAt.toISOString() : null,
+					}
+				: null,
+		}));
 
-    return Utils.formatResponseSuccess(
-      'Solicitudes obtenidas exitosamente',
-      resp,
-    );
-  }
+		return Utils.formatResponseSuccess('Solicitudes obtenidas exitosamente', resp);
+	}
 
-  async getApplicationById(id: number) {
-    try {
-      const app = await this.prisma.application.findUnique({
-        where: { id },
-        include: {
-          approvedBy: { select: { id: true, name: true, email: true } },
-        },
-      });
-      if (!app) {
-        return Utils.formatResponseFail('Solicitud no encontrada');
-      }
+	async getApplicationById(id: number) {
+		try {
+			const app = await this.prisma.application.findUnique({
+				where: { id },
+				include: {
+					approvedBy: { select: { id: true, name: true, email: true } },
+				},
+			});
+			if (!app) {
+				return Utils.formatResponseFail('Solicitud no encontrada');
+			}
 
-      return Utils.formatResponseSuccess(
-        'Solicitud encontrada',
-        Utils.formatDates(app),
-      );
-    } catch (error) {
-      return Utils.formatResponseFail(
-        'Solicitud no encontrada: ' + error.message,
-      );
-    }
-  }
+			return Utils.formatResponseSuccess('Solicitud encontrada', Utils.formatDates(app));
+		} catch (error) {
+			return Utils.formatResponseFail('Solicitud no encontrada: ' + error.message);
+		}
+	}
 
-  async filterApplications(filters: FilterApplicationsDto) {
-    const { startDate, endDate, identificationNumber } = filters;
+	async filterApplications(filters: FilterApplicationsDto) {
+		const { startDate, endDate, identificationNumber } = filters;
 
-    const where: any = {};
+		const where: any = {};
 
-    console.log('Filtros recibidos:', filters);
+		console.log('Filtros recibidos:', filters);
 
-    // Filtro por fechas de creación
-    if (startDate || endDate) {
-      where.createdAt = {};
+		// Filtro por fechas de creación
+		if (startDate || endDate) {
+			where.createdAt = {};
 
-      if (startDate) {
-        // Ajusta al inicio del día en UTC
-        where.createdAt.gte = startOfDay(new Date(startDate));
-      }
+			if (startDate) {
+				// Ajusta al inicio del día en UTC
+				where.createdAt.gte = startOfDay(new Date(startDate));
+			}
 
-      if (endDate) {
-        // Ajusta al final del día en UTC
-        where.createdAt.lte = endOfDay(new Date(endDate));
-      }
-    }
+			if (endDate) {
+				// Ajusta al final del día en UTC
+				where.createdAt.lte = endOfDay(new Date(endDate));
+			}
+		}
 
-    // Filtro por número de identificación
-    if (identificationNumber) {
-      where.identificationNumber = identificationNumber;
-    }
+		// Filtro por número de identificación
+		if (identificationNumber) {
+			where.identificationNumber = identificationNumber;
+		}
 
-    where.payment = {
-      status: 'aprobado',
-    };
+		where.payment = {
+			status: 'aprobado',
+		};
 
-    const results = await this.prisma.application.findMany({
-      where,
-      include: {
-        plan: true,
-        approvedBy: {
-          select: { id: true, name: true, email: true },
-        },
-        payment: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+		const results = await this.prisma.application.findMany({
+			where,
+			include: {
+				plan: true,
+				approvedBy: {
+					select: { id: true, name: true, email: true },
+				},
+				payment: true,
+			},
+			orderBy: { createdAt: 'desc' },
+		});
 
-    return Utils.formatResponseSuccess(
-      'Solicitudes filtradas obtenidas exitosamente',
-      results,
-    );
-  }
+		return Utils.formatResponseSuccess('Solicitudes filtradas obtenidas exitosamente', results);
+	}
 
-  /* async approveApplication(id: number, adminUserId: number) {
+	/* async approveApplication(id: number, adminUserId: number) {
     try {
       const response = await this.getApplicationById(id);
       const app = response.data;
