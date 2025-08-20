@@ -67,7 +67,7 @@ export class PaymentController {
 			adminUserId: 1,
 		});
 
-		this.paymentGateway.sendPaymentUpdate({
+		this.paymentGateway.sendPaymentUpdate(app.referenceTransaction, {
 			reference: data.internalTransactionReference,
 			status: data.status,
 			amount: data.amount,
@@ -79,7 +79,7 @@ export class PaymentController {
 
 	@Post('test-socket')
 	async testSocket(@Body() data: any) {
-		const resp = await this.paymentGateway.sendPaymentUpdate({
+		const resp = await this.paymentGateway.sendPaymentUpdate(data.referenceTransaction, {
 			reference: data.reference || 'TEST123',
 			status: data.status || 'pendiente',
 			amount: data.amount || 100,

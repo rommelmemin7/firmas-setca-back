@@ -63,6 +63,8 @@ export class ApplicationService {
 				try {
 					const response = await this.payment.requestPaymentDeuna(app.id);
 
+					response.data.referenceTransaction = app.referenceTransaction;
+
 					return Utils.formatResponseSuccess('Solicitud creada exitosamente', response.data);
 				} catch (error) {
 					Utils.formatResponseFail('Error al enviar solicitud de pago deUna: ' + error.message);
