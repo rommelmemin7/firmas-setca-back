@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsString } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreatePaymentDto {
 	@IsInt()
@@ -9,6 +9,10 @@ export class CreatePaymentDto {
 	comprobanteNumber: string;
 
 	@IsString()
-	@IsNotEmpty()
+	@IsOptional()
 	comprobanteImageBase64: string; // Imagen en Base64
+
+	@IsString()
+	@IsOptional()
+	tipoPago: string; // Imagen en Base64
 }

@@ -15,10 +15,23 @@ export class FirmaSeguraService {
 	) {}
 
 	async registerApplication(data: any) {
-		const response$ = this.httpService.post('https://api.dev-firmaseguraec.com/collector/request', data, { headers: { Authorization: `Bearer ${this.apiToken}` } });
+		try {
+			const response$ = this.httpService.post('https://api.dev-firmaseguraec.com/collector/request', data, { headers: { Authorization: `Bearer ${this.apiToken}` } });
 
-		const response = await firstValueFrom(response$);
-		return response.data;
+			const response = await firstValueFrom(response$);
+
+			return {
+				status: response.status,
+				data: response.data || null,
+			};
+		} catch (error: any) {
+			return {
+				status: error.response?.status || null,
+				data: error.response?.data || null,
+				message: error.message,
+				isAxiosError: error.isAxiosError || false,
+			};
+		}
 	}
 
 	async checkApplicationStatus(referenceTransaction: string) {
@@ -56,7 +69,7 @@ export class FirmaSeguraService {
 						},
 					});
 
-					this.logger.log(`Solicitud ${app.referenceTransaction} actualizada a ${statusResponse.status}`);
+					this.logger.log(`Solicitud ${app.referenceTransaction} actualizada a ${statusResponse.status} - ${statusResponse.observation.message}`);
 				} else {
 					// 👇 Si no cambió, solo actualiza la fecha de verificación
 					await this.prisma.application.update({
@@ -66,7 +79,7 @@ export class FirmaSeguraService {
 						},
 					});
 
-					this.logger.log(`Solicitud ${app.referenceTransaction} sin cambios de estado (${statusResponse.status})`);
+					this.logger.log(`Solicitud ${app.referenceTransaction} sin cambios de estado (${statusResponse.status} - ${statusResponse.observation})`);
 				}
 			} catch (error) {
 				this.logger.error(`Error actualizando solicitud ${app.referenceTransaction}: ${error}`);

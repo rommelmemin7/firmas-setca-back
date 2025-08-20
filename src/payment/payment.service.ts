@@ -5,7 +5,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Utils } from 'src/_common/utils/utils';
 import { FirmaSeguraService } from 'src/firma-segura/firma-segura.service';
 import { addDays } from 'date-fns';
-import { firstValueFrom } from 'rxjs';
+import { buffer, firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import * as request from 'supertest';
 import { parse } from 'path';
@@ -38,19 +38,30 @@ export class PaymentService {
 			return Utils.formatResponseFail('Ya existe un pago para esta solicitud');
 		}
 
-		// Convertir Base64 → Buffer
-		let comprobanteBuffer: Buffer;
-		try {
-			comprobanteBuffer = Buffer.from(data.comprobanteImageBase64, 'base64');
-		} catch (error) {
-			return Utils.formatResponseFail('Formato de imagen inválido');
+		let comprobanteBuffer: Buffer | null = null;
+
+		// Validar según tipo de pago
+		if (data.tipoPago !== 'Deuna') {
+			if (!data.comprobanteImageBase64 || data.comprobanteImageBase64.trim() === '') {
+				return Utils.formatResponseFail('El comprobante es obligatorio para este tipo de pago');
+			}
+		}
+
+		// Si hay imagen, convertir a Buffer
+		if (data.comprobanteImageBase64 && data.comprobanteImageBase64.trim() !== '') {
+			try {
+				comprobanteBuffer = Buffer.from(data.comprobanteImageBase64, 'base64');
+			} catch (error) {
+				return Utils.formatResponseFail('Formato de imagen inválido');
+			}
 		}
 
 		const payment = await this.prisma.payment.create({
 			data: {
 				applicationId: data.applicationId,
 				comprobanteNumber: data.comprobanteNumber,
-				comprobanteImage: comprobanteBuffer,
+				tipoPago: data.tipoPago ? data.tipoPago.toUpperCase() : 'TRANSFERENCIA',
+				comprobanteImage: comprobanteBuffer, //
 			},
 		});
 
@@ -59,7 +70,6 @@ export class PaymentService {
 
 	async updateStatus(id: number, data: UpdatePaymentStatusDto) {
 		const payment = await this.prisma.payment.findUnique({ where: { id } });
-
 		if (!payment) {
 			return Utils.formatResponseFail('Pago no encontrado');
 		}
@@ -68,34 +78,93 @@ export class PaymentService {
 			return Utils.formatResponseFail('El pago ya ha sido aprobado');
 		}
 
-		const updatePayment = await this.prisma.payment.update({
-			where: { id },
-			data: {
-				status: data.status,
-				approvedAt: data.status === 'aprobado' || data.status === 'rechazado' ? new Date() : null,
-			},
-		});
-
-		if (updatePayment.status !== 'aprobado') {
-			return Utils.formatResponseSuccess('Estado del pago actualizado', Utils.formatDates(updatePayment));
-		}
-
-		const app = await this.prisma.application.findUnique({
-			where: { id: updatePayment.applicationId },
-		});
+		const app = await this.prisma.application.findUnique({ where: { id: payment.applicationId } });
 		if (!app) {
 			return Utils.formatResponseFail('La solicitud asociada no existe');
 		}
 
-		const plan = await this.prisma.plan.findUnique({
-			where: { id: app.planId },
-		});
+		const plan = await this.prisma.plan.findUnique({ where: { id: app.planId } });
 		if (!plan) {
 			return Utils.formatResponseFail('El plan asociado a la solicitud no existe');
 		}
 
+		// Preparamos los bytes de los documentos
+		const frontBytes = Array.from(app.identificationFront);
+		const backBytes = Array.from(app.identificationBack);
+		const selfieBytes = Array.from(app.identificationSelfie);
+		const video = app.authorizationVideo ? Array.from(app.authorizationVideo) : null;
+		const pdfCompanyRuc = app.pdfCompanyRuc ? Array.from(app.pdfCompanyRuc) : null;
+		const pdfRepresentativeAppointment = app.pdfRepresentativeAppointment ? Array.from(app.pdfRepresentativeAppointment) : null;
+		const pdfAppointmentAcceptance = app.pdfAppointmentAcceptance ? Array.from(app.pdfAppointmentAcceptance) : null;
+		const pdfCompanyConstitution = app.pdfCompanyConstitution ? Array.from(app.pdfCompanyConstitution) : null;
+
+		console.log('Bytes preparados para FirmaSegura:', {
+			frontLength: frontBytes.length,
+			backLength: backBytes.length,
+			selfieLength: selfieBytes.length,
+		});
+
+		let firmaResponse;
+		try {
+			// Llamada a FirmaSegura
+			firmaResponse = await this.firmaSeguraService.registerApplication({
+				identificationNumber: app.identificationNumber,
+				applicantName: app.applicantName,
+				applicantLastName: app.applicantLastName,
+				applicantSecondLastName: app.applicantSecondLastName,
+				fingerCode: app.fingerCode,
+				emailAddress: app.emailAddress,
+				cellphoneNumber: app.cellphoneNumber,
+				city: app.city,
+				province: app.province,
+				address: app.address,
+				countryCode: app.countryCode,
+				companyRuc: app.companyRuc,
+				positionCompany: app.positionCompany,
+				companySocialReason: app.companySocialReason,
+				appointmentExpirationDate: app.appointmentExpirationDate ? new Date(app.appointmentExpirationDate) : null,
+				applicationType: app.applicationType,
+				documentType: app.documentType,
+				referenceTransaction: app.referenceTransaction,
+				period: app.period!,
+				identificationFront: frontBytes,
+				identificationBack: backBytes,
+				identificationSelfie: selfieBytes,
+				pdfCompanyRuc: pdfCompanyRuc,
+				pdfRepresentativeAppointment: pdfRepresentativeAppointment,
+				pdfAppointmentAcceptance: pdfAppointmentAcceptance,
+				pdfCompanyConstitution: pdfCompanyConstitution,
+				authorizationVideo: video,
+			});
+
+			console.log('✅ FirmaSegura respondió correctamente:', JSON.stringify(firmaResponse, null, 2));
+		} catch (error: any) {
+			console.error('❌ Error al llamar a FirmaSegura:', {
+				message: error.message,
+				isAxiosError: error.isAxiosError,
+				config: error.config,
+				responseStatus: error.response?.status,
+				responseHeaders: error.response?.headers,
+				responseData: error.response?.data,
+			});
+
+			return Utils.formatResponseFail(`Error inesperado en FirmaSegura: ${error.message || 'desconocido'}`);
+		}
+
+		console.log('Código de estado HTTP:', firmaResponse?.status);
+		console.log('Headers de respuesta:', JSON.stringify(firmaResponse?.headers, null, 2));
+		console.log('Cuerpo de la respuesta:', JSON.stringify(firmaResponse?.data, null, 2));
+
 		try {
 			await this.prisma.$transaction(async (tx) => {
+				await tx.payment.update({
+					where: { id },
+					data: {
+						status: data.status,
+						approvedAt: data.status === 'aprobado' || data.status === 'rechazado' ? new Date() : null,
+					},
+				});
+
 				const client = await tx.client.create({
 					data: {
 						identificationNumber: app.identificationNumber,
@@ -111,7 +180,6 @@ export class PaymentService {
 
 				const startDate = new Date();
 				const endDate = addDays(startDate, plan.durationdays);
-
 				await tx.subscription.create({
 					data: {
 						clientId: client.id,
@@ -121,40 +189,10 @@ export class PaymentService {
 					},
 				});
 
-				const firmaResponse = await this.firmaSeguraService.registerApplication({
-					identificationNumber: app.identificationNumber,
-					applicantName: app.applicantName,
-					applicantLastName: app.applicantLastName,
-					applicantSecondLastName: app.applicantSecondLastName,
-					fingerCode: app.fingerCode,
-					emailAddress: app.emailAddress,
-					cellphoneNumber: app.cellphoneNumber,
-					city: app.city,
-					province: app.province,
-					address: app.address,
-					countryCode: app.countryCode,
-					companyRuc: app.companyRuc,
-					positionCompany: app.positionCompany,
-					companySocialReason: app.companySocialReason,
-					appointmentExpirationDate: app.appointmentExpirationDate ? new Date(app.appointmentExpirationDate) : null,
-					applicationType: app.applicationType,
-					documentType: app.documentType,
-					referenceTransaction: app.referenceTransaction,
-					period: app.period!,
-					identificationFront: Buffer.from(app.identificationFront).toString('base64'),
-					identificationBack: Buffer.from(app.identificationBack).toString('base64'),
-					identificationSelfie: Buffer.from(app.identificationSelfie).toString('base64'),
-					pdfCompanyRuc: app.pdfCompanyRuc ? Buffer.from(app.pdfCompanyRuc).toString('base64') : null,
-					pdfRepresentativeAppointment: app.pdfRepresentativeAppointment ? Buffer.from(app.pdfRepresentativeAppointment).toString('base64') : null,
-					pdfAppointmentAcceptance: app.pdfAppointmentAcceptance ? Buffer.from(app.pdfAppointmentAcceptance).toString('base64') : null,
-					pdfCompanyConstitution: app.pdfCompanyConstitution ? Buffer.from(app.pdfCompanyConstitution).toString('base64') : null,
-					authorizationVideo: app.authorizationVideo ? Buffer.from(app.authorizationVideo).toString('base64') : null,
-				});
-
 				await tx.application.update({
 					where: { id: app.id },
 					data: {
-						externalStatus: firmaResponse.status,
+						externalStatus: firmaResponse.status == 200 ? 'pending' : 'Rechazado', //cambiar nuca  va entrar al cron
 						lastCheckedAt: new Date(),
 						approvedById: data.adminUserId,
 						status: 'Aprobado',
@@ -166,16 +204,28 @@ export class PaymentService {
 				});
 			});
 
-			return Utils.formatResponseSuccess('Estado del pago actualizado y solicitud registrada exitosamente', Utils.formatDates(updatePayment));
+			return Utils.formatResponseSuccess('Estado del pago actualizado y solicitud registrada exitosamente');
 		} catch (error) {
-			console.error('Error registrando la solicitud en FirmaSegura:', error);
-			return Utils.formatResponseFail('Error al registrar la solicitud en FirmaSegura: ' + error.message);
+			console.error('Error en la transacción Prisma:', error);
+			return Utils.formatResponseFail('Error al registrar la solicitud en la base de datos: ' + (error.message || 'desconocido'));
 		}
 	}
 
 	async getPaymentByApplication(applicationId: number) {
 		const payment = await this.prisma.payment.findUnique({
 			where: { applicationId },
+		});
+
+		if (!payment) {
+			return Utils.formatResponseFail('Pago no encontrado');
+		}
+
+		return Utils.formatResponseSuccess('Pago encontrado', Utils.formatDates(payment));
+	}
+
+	async getPaymentIdComprobante(referenceTransaction: string) {
+		const payment = await this.prisma.payment.findFirst({
+			where: { comprobanteNumber: referenceTransaction },
 		});
 
 		if (!payment) {
@@ -205,6 +255,13 @@ export class PaymentService {
 			if (!plan) {
 				return Utils.formatResponseFail('El plan asociado a la solicitud no existe');
 			}
+
+			await this.createPayment({
+				applicationId: app.id,
+				comprobanteNumber: 'DeUna-' + app.referenceTransaction,
+				comprobanteImageBase64: '',
+				tipoPago: 'Deuna',
+			});
 
 			const headers = {
 				'x-api-key': apiKey,

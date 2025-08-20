@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
+import sharp from 'sharp';
 
 export class Utils {
 	static formatResponseFail(errorMsg: any): any {
@@ -126,5 +127,28 @@ export class Utils {
 		const timestamp = Date.now().toString().slice(-8); // últimos 8 dígitos
 		const shortUuid = uuidv4().replace(/-/g, '').slice(0, 6); // 6 caracteres
 		return `${prefix}${timestamp}${shortUuid}`.slice(0, 19); // máximo 20 caracteres
+	}
+
+	static async compressImageBuffer(
+		imageBuffer: Buffer,
+		maxSizeBytes: number = 5 * 1024 * 1024 // 5 MB por defecto
+	): Promise<Buffer> {
+		const originalSize = imageBuffer.length;
+
+		// Si la imagen ya es más pequeña que el máximo, no hay nada que hacer.
+		if (originalSize <= maxSizeBytes) {
+			return imageBuffer;
+		}
+
+		let quality = 80;
+		let compressedBuffer = await sharp(imageBuffer).jpeg({ quality: quality, progressive: true }).toBuffer();
+
+		// Si la imagen sigue siendo demasiado grande, reduce la calidad progresivamente.
+		while (compressedBuffer.length > maxSizeBytes && quality > 10) {
+			quality -= 5;
+			compressedBuffer = await sharp(imageBuffer).jpeg({ quality: quality, progressive: true }).toBuffer();
+		}
+
+		return compressedBuffer;
 	}
 }

@@ -79,9 +79,35 @@ export class ApplicationService {
 		const app = await this.prisma.application.findMany({
 			orderBy: { createdAt: 'desc' },
 			where: role == 1 ? {} : { idCreador: idUser },
-			include: {
-				payment: true,
-				approvedBy: { select: { id: true, name: true, email: true } },
+			select: {
+				id: true,
+				identificationNumber: true,
+				applicantName: true,
+				applicantSecondLastName: true,
+				applicantLastName: true,
+				emailAddress: true,
+				status: true,
+				createdAt: true,
+				updatedAt: true,
+				approvedAt: true,
+				payment: {
+					select: {
+						id: true,
+						tipoPago: true,
+						status: true,
+						createdAt: true,
+						updatedAt: true,
+						approvedAt: true,
+					},
+				},
+				// relación con approvedBy
+				approvedBy: {
+					select: {
+						id: true,
+						name: true,
+						email: true,
+					},
+				},
 			},
 		});
 
@@ -112,9 +138,36 @@ export class ApplicationService {
 				...(role == 1 ? {} : { idCreador: idUser }),
 			},
 			orderBy: { createdAt: 'desc' },
-			include: {
-				payment: true,
-				approvedBy: { select: { id: true, name: true, email: true } },
+			select: {
+				id: true,
+				identificationNumber: true,
+				applicantName: true,
+				applicantSecondLastName: true,
+				applicantLastName: true,
+				emailAddress: true,
+				status: true,
+				createdAt: true,
+				updatedAt: true,
+				approvedAt: true,
+				externalStatus: true,
+				observation: true,
+				payment: {
+					select: {
+						id: true,
+						tipoPago: true,
+						status: true,
+						createdAt: true,
+						updatedAt: true,
+						approvedAt: true,
+					},
+				},
+				approvedBy: {
+					select: {
+						id: true,
+						name: true,
+						email: true,
+					},
+				},
 			},
 		});
 
@@ -141,6 +194,7 @@ export class ApplicationService {
 			const app = await this.prisma.application.findUnique({
 				where: { id },
 				include: {
+					payment: true,
 					approvedBy: { select: { id: true, name: true, email: true } },
 				},
 			});
@@ -152,6 +206,18 @@ export class ApplicationService {
 		} catch (error) {
 			return Utils.formatResponseFail('Solicitud no encontrada: ' + error.message);
 		}
+	}
+
+	async getApplicationByIntRef(intReference: string) {
+		const app = await this.prisma.application.findFirst({
+			where: { referenceTransaction: intReference },
+		});
+
+		if (!app) {
+			return Utils.formatResponseFail('Solicitud no encontrada');
+		}
+
+		return Utils.formatResponseSuccess('Solicitud encontrada', Utils.formatDates(app));
 	}
 
 	async filterApplications(filters: FilterApplicationsDto, role: number, idUser: number) {

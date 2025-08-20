@@ -10,9 +10,10 @@ import { PaymentModule } from './payment/payment.module';
 import { PlanModule } from './plan/plan.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { FirmaSeguraModule } from './firma-segura/firma-segura.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-	imports: [PrismaModule, AuthModule, UsersModule, ApplicationModule, ClientModule, PaymentModule, PlanModule, ScheduleModule.forRoot(), FirmaSeguraModule],
+	imports: [PrismaModule, AuthModule, UsersModule, ApplicationModule, ClientModule, PaymentModule, PlanModule, ScheduleModule.forRoot(), FirmaSeguraModule, ConfigModule.forRoot({ isGlobal: true })],
 	controllers: [AppController],
 	providers: [AppService],
 })

@@ -7,7 +7,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 export class UsersController {
 	constructor(private readonly usersService: UsersService) {}
 
-	@UseGuards(JwtAuthGuard)
+	/* @UseGuards(JwtAuthGuard) */
 	@Post('register')
 	register(@Body('name') name: string, @Body('email') email: string, @Body('password') password: string, @Body('roleId') roleId: number) {
 		return this.usersService.register(name, email, password, roleId);

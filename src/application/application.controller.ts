@@ -37,6 +37,12 @@ export class ApplicationController {
 		return this.applicationService.getApplicationById(id);
 	}
 
+	@UseGuards(JwtAuthGuard)
+	@Get('int-ref/:intReference')
+	async findByIntRef(@Param('intReference') intReference: string) {
+		return this.applicationService.getApplicationByIntRef(intReference);
+	}
+
 	@Post('filter')
 	async filter(@Body() filters: FilterApplicationsDto, @Req() req) {
 		const roleId = req.user.role;
