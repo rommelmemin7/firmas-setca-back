@@ -56,7 +56,6 @@ export class PaymentController {
 			return res.status(HttpStatus.BAD_REQUEST).send('Payload inválido');
 		}
 
-		// Solo procesamos si el estado es SUCCESS
 		if (data.status === 'SUCCESS') {
 			try {
 				const app = await this.appService.getApplicationByIntRef(data.internalTransactionReference);
