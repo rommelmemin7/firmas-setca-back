@@ -3,7 +3,7 @@ import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
-	cors: { origin: '*' }, // ⚠️ abre para todos, luego puedes restringir
+	cors: true, // ⚠️ abre para todos, luego puedes restringir
 	path: '/socket.io', // 👈 explícalo para evitar confusiones
 	transports: ['websocket', 'polling'], // 👈 permite WebSocket y Polling
 })
