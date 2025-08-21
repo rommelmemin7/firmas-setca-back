@@ -51,6 +51,9 @@ export class FirmaSeguraService {
 				externalStatus: {
 					in: ['pending', 'REGISTERED', 'VALIDATING', 'REFUSED', 'ERROR', 'APPROVED', 'EXPIRED'],
 				},
+				payment: {
+					status: 'aprobado',
+				},
 			},
 		});
 
