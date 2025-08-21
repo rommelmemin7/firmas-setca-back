@@ -56,25 +56,38 @@ export class PaymentController {
 			return res.status(HttpStatus.BAD_REQUEST).send('Payload inválido');
 		}
 
-		const app = await this.appService.getApplicationByIntRef(data.internalTransactionReference);
+		// Solo procesamos si el estado es SUCCESS
+		if (data.status === 'SUCCESS') {
+			try {
+				const app = await this.appService.getApplicationByIntRef(data.internalTransactionReference);
 
-		if (!app) {
-			return res.status(HttpStatus.NOT_FOUND).send('Solicitud no encontrada');
+				if (!app) {
+					return res.status(HttpStatus.NOT_FOUND).send('Solicitud no encontrada');
+				}
+
+				await this.paymentService.updateStatus(app.id, {
+					status: data.status == 'SUCCESS' ? 'aprobado' : 'rechazado',
+					adminUserId: 1,
+				});
+
+				this.paymentGateway.sendPaymentUpdate(app.referenceTransaction, {
+					reference: data.internalTransactionReference,
+					status: data.status,
+					amount: data.amount,
+					customerId: data.customerIdentification,
+					currency: data.currency,
+					date: data.date,
+					description: data.description,
+				});
+
+				return res.status(HttpStatus.OK).send('OK');
+			} catch (error) {
+				console.error('Error procesando webhook:', error);
+				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send('Error interno');
+			}
 		}
 
-		await this.paymentService.updateStatus(app.id, {
-			status: data.status,
-			adminUserId: 1,
-		});
-
-		this.paymentGateway.sendPaymentUpdate(app.referenceTransaction, {
-			reference: data.internalTransactionReference,
-			status: data.status,
-			amount: data.amount,
-			customer: data.customerFullName,
-		});
-
-		return res.status(HttpStatus.OK).send('OK');
+		return res.status(HttpStatus.OK).send('No procesado');
 	}
 
 	@Post('test-socket')
