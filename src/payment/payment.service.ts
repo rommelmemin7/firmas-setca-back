@@ -9,6 +9,7 @@ import { buffer, firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import * as request from 'supertest';
 import { parse } from 'path';
+import moment from 'moment';
 
 @Injectable()
 export class PaymentService {
@@ -106,6 +107,8 @@ export class PaymentService {
 
 		let firmaResponse;
 		try {
+			console.log('Inu');
+			console.log(moment(app.appointmentExpirationDate).format('YYYY-MM-DD HH:mm:ss'));
 			// Llamada a FirmaSegura
 			firmaResponse = await this.firmaSeguraService.registerApplication({
 				identificationNumber: app.identificationNumber,
@@ -122,7 +125,7 @@ export class PaymentService {
 				companyRuc: app.companyRuc,
 				positionCompany: app.positionCompany,
 				companySocialReason: app.companySocialReason,
-				appointmentExpirationDate: app.appointmentExpirationDate ? new Date(app.appointmentExpirationDate) : null,
+				appointmentExpirationDate: app.appointmentExpirationDate ? moment(app.appointmentExpirationDate).format('YYYY-MM-DD HH:mm:ss') : null,
 				applicationType: app.applicationType,
 				documentType: app.documentType,
 				referenceTransaction: app.referenceTransaction,
@@ -155,59 +158,64 @@ export class PaymentService {
 		console.log('Headers de respuesta:', JSON.stringify(firmaResponse?.headers, null, 2));
 		console.log('Cuerpo de la respuesta:', JSON.stringify(firmaResponse?.data, null, 2));
 
-		try {
-			await this.prisma.$transaction(async (tx) => {
-				await tx.payment.update({
-					where: { id },
-					data: {
-						status: data.status,
-						approvedAt: data.status === 'aprobado' || data.status === 'rechazado' ? new Date() : null,
-					},
+		if (firmaResponse.status == 200) {
+			try {
+				await this.prisma.$transaction(async (tx) => {
+					await tx.payment.update({
+						where: { id },
+						data: {
+							status: data.status,
+							approvedAt: data.status === 'aprobado' || data.status === 'rechazado' ? new Date() : null,
+						},
+					});
+
+					const client = await tx.client.create({
+						data: {
+							identificationNumber: app.identificationNumber,
+							applicantName: app.applicantName,
+							applicantLastName: app.applicantLastName,
+							applicantSecondLastName: app.applicantSecondLastName,
+							emailAddress: app.emailAddress,
+							cellphoneNumber: app.cellphoneNumber,
+							applicationId: app.id,
+							approvedById: data.adminUserId,
+						},
+					});
+
+					const startDate = new Date();
+					const endDate = addDays(startDate, plan.durationdays);
+					await tx.subscription.create({
+						data: {
+							clientId: client.id,
+							planId: plan.id,
+							startDate,
+							endDate,
+						},
+					});
+
+					await tx.application.update({
+						where: { id: app.id },
+						data: {
+							externalStatus: firmaResponse.status == 200 ? 'pending' : 'Rechazado', //cambiar nuca  va entrar al cron
+							lastCheckedAt: new Date(),
+							approvedById: data.adminUserId,
+							status: 'Aprobado',
+							approvedAt: new Date(),
+						},
+						select: {
+							id: true,
+							approvedBy: { select: { id: true, name: true, email: true } },
+						},
+					});
 				});
 
-				const client = await tx.client.create({
-					data: {
-						identificationNumber: app.identificationNumber,
-						applicantName: app.applicantName,
-						applicantLastName: app.applicantLastName,
-						applicantSecondLastName: app.applicantSecondLastName,
-						emailAddress: app.emailAddress,
-						cellphoneNumber: app.cellphoneNumber,
-						applicationId: app.id,
-						approvedById: data.adminUserId,
-					},
-				});
-
-				const startDate = new Date();
-				const endDate = addDays(startDate, plan.durationdays);
-				await tx.subscription.create({
-					data: {
-						clientId: client.id,
-						planId: plan.id,
-						startDate,
-						endDate,
-					},
-				});
-
-				await tx.application.update({
-					where: { id: app.id },
-					data: {
-						externalStatus: firmaResponse.status == 200 ? 'pending' : 'Rechazado', //cambiar nuca  va entrar al cron
-						lastCheckedAt: new Date(),
-						approvedById: data.adminUserId,
-						status: 'Aprobado',
-						approvedAt: new Date(),
-					},
-					include: {
-						approvedBy: { select: { id: true, name: true, email: true } },
-					},
-				});
-			});
-
-			return Utils.formatResponseSuccess('Estado del pago actualizado y solicitud registrada exitosamente');
-		} catch (error) {
-			console.error('Error en la transacción Prisma:', error);
-			return Utils.formatResponseFail('Error al registrar la solicitud en la base de datos: ' + (error.message || 'desconocido'));
+				return Utils.formatResponseSuccess('Estado del pago actualizado y solicitud registrada exitosamente');
+			} catch (error) {
+				console.error('Error en la transacción Prisma:', error);
+				return Utils.formatResponseFail('Error al registrar la solicitud en la base de datos: ' + (error.message || 'desconocido'));
+			}
+		} else {
+			return Utils.formatResponseFail(`Error al registrar la solicitud en FirmaSegura: ${firmaResponse?.data?.message || 'desconocido'}`);
 		}
 	}
 

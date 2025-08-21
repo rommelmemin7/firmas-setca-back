@@ -44,12 +44,12 @@ export class FirmaSeguraService {
 		return response.data;
 	}
 
-	@Cron(CronExpression.EVERY_5_MINUTES)
+	@Cron(CronExpression.EVERY_MINUTE)
 	async updateApplicationsStatus() {
 		const applications = await this.prisma.application.findMany({
 			where: {
 				externalStatus: {
-					in: ['pending', 'REGISTERED', 'VALIDATING', 'REFUSED', 'ERROR', 'GENERATED', 'EXPIRED', 'PENDING', 'MANUALLY_VALIDATING', 'AUTOMATICALLY_VALIDATING', 'COMPLETED'],
+					in: ['pending', 'REGISTERED', 'VALIDATING', 'REFUSED', 'ERROR', 'APPROVED', 'EXPIRED'],
 				},
 			},
 		});
@@ -64,7 +64,7 @@ export class FirmaSeguraService {
 						where: { id: app.id },
 						data: {
 							externalStatus: statusResponse.status,
-							observation: `${app.observation ?? ''}${app.observation ? '\n' : ''}${newObservationEntry}`,
+							observation: app.observation ? `${app.observation}\n${newObservationEntry}` : newObservationEntry,
 							lastCheckedAt: new Date(),
 						},
 					});
