@@ -3,7 +3,7 @@ import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
-	cors: true, // ⚠️ abre para todos, luego puedes restringir
+	cors: { origin: '*' }, // ⚠️ abre para todos, luego puedes restringir
 	path: '/socket.io', // 👈 explícalo para evitar confusiones
 	transports: ['websocket', 'polling'], // 👈 permite WebSocket y Polling
 })
@@ -30,6 +30,7 @@ export class PaymentGateway {
 			this.clients.set(referenceTransaction, client.id);
 			console.log(`Cliente conectado: ${referenceTransaction} -> ${client.id}`);
 		}
+		client.on('error', (err) => console.error('[WS] client error', client.id, err));
 	}
 
 	handleDisconnect(client: Socket) {
