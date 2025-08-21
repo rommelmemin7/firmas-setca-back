@@ -213,6 +213,37 @@ export class ApplicationService {
 	async getApplicationByIntRef(intReference: string) {
 		const app = await this.prisma.application.findFirst({
 			where: { referenceTransaction: intReference },
+			select: {
+				id: true,
+				identificationNumber: true,
+				applicantName: true,
+				applicantSecondLastName: true,
+				applicantLastName: true,
+				emailAddress: true,
+				status: true,
+				createdAt: true,
+				updatedAt: true,
+				approvedAt: true,
+				externalStatus: true,
+				observation: true,
+				payment: {
+					select: {
+						id: true,
+						tipoPago: true,
+						status: true,
+						createdAt: true,
+						updatedAt: true,
+						approvedAt: true,
+					},
+				},
+				approvedBy: {
+					select: {
+						id: true,
+						name: true,
+						email: true,
+					},
+				},
+			},
 		});
 
 		if (!app) {

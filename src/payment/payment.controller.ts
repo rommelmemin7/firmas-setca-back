@@ -64,21 +64,24 @@ export class PaymentController {
 					return res.status(HttpStatus.NOT_FOUND).send('Solicitud no encontrada');
 				}
 
-				await this.paymentService.updateStatus(app.data.id, {
-					status: data.status == 'SUCCESS' ? 'aprobado' : 'rechazado',
-					adminUserId: 1,
-				});
-
-				this.paymentGateway.sendPaymentUpdate(app.referenceTransaction, {
-					reference: data.internalTransactionReference,
-					status: data.status,
-					amount: data.amount,
-					customerId: data.customerIdentification,
-					currency: data.currency,
-					date: data.date,
-					description: data.description,
-				});
-
+				console.log(app.data);
+				if (app.data.payment.status !== 'aprobado') {
+					await this.paymentService.updateStatus(app.data.id, {
+						status: data.status == 'SUCCESS' ? 'aprobado' : 'rechazado',
+						adminUserId: 1,
+					});
+					this.paymentGateway.sendPaymentUpdate(app.referenceTransaction, {
+						reference: data.internalTransactionReference,
+						status: data.status,
+						amount: data.amount,
+						customerId: data.customerIdentification,
+						currency: data.currency,
+						date: data.date,
+						description: data.description,
+					});
+				} else {
+					console.log('Solicitud aprobada previamente');
+				}
 				return res.status(HttpStatus.OK).send('OK');
 			} catch (error) {
 				console.error('Error procesando webhook:', error);
