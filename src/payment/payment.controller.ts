@@ -64,7 +64,7 @@ export class PaymentController {
 					return res.status(HttpStatus.NOT_FOUND).send('Solicitud no encontrada');
 				}
 
-				await this.paymentService.updateStatus(app.id, {
+				await this.paymentService.updateStatus(app.data.id, {
 					status: data.status == 'SUCCESS' ? 'aprobado' : 'rechazado',
 					adminUserId: 1,
 				});

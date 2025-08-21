@@ -294,6 +294,7 @@ export class PaymentService {
 			return Utils.formatResponseFail('Error al enviar solicitud de pago deUna: ' + error.message);
 		}
 	}
+
 	async getPaymentStatusDeuna(transaccionId: string) {
 		const apiKey = process.env['X-API-KEY'];
 		const apiSecret = process.env['X-API-SECRET'];
