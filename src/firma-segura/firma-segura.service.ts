@@ -44,7 +44,7 @@ export class FirmaSeguraService {
 		return response.data;
 	}
 
-	@Cron(CronExpression.EVERY_10_MINUTES)
+	@Cron(CronExpression.EVERY_5_MINUTES)
 	async updateApplicationsStatus() {
 		const applications = await this.prisma.application.findMany({
 			where: {
@@ -58,7 +58,7 @@ export class FirmaSeguraService {
 			try {
 				const statusResponse = await this.checkApplicationStatus(app.referenceTransaction);
 				if (statusResponse.status !== app.externalStatus) {
-					const newObservationEntry = `${statusResponse.status} - ${new Date().toLocaleDateString('es-EC')}`;
+					const newObservationEntry = `${statusResponse.status} - ${statusResponse.updatedDate}`;
 
 					await this.prisma.application.update({
 						where: { id: app.id },
