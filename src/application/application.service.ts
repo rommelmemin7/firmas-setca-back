@@ -226,6 +226,7 @@ export class ApplicationService {
 				approvedAt: true,
 				externalStatus: true,
 				observation: true,
+				referenceTransaction: true,
 				payment: {
 					select: {
 						id: true,
