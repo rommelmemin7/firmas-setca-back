@@ -70,7 +70,7 @@ export class PaymentController {
 						status: data.status == 'SUCCESS' ? 'aprobado' : 'rechazado',
 						adminUserId: 1,
 					});
-					this.paymentGateway.sendPaymentUpdate(app.referenceTransaction, {
+					this.paymentGateway.sendPaymentUpdate(app.data.referenceTransaction, {
 						reference: data.internalTransactionReference,
 						status: data.status,
 						amount: data.amount,
