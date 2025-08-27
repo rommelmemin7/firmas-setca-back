@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -10,16 +10,22 @@ import { HttpService } from '@nestjs/axios';
 import * as request from 'supertest';
 import { parse } from 'path';
 import moment from 'moment';
+import { ApplicationService } from 'src/application/application.service';
+import { PaymentGateway } from './payment.gateway';
 
 @Injectable()
 export class PaymentService {
 	private readonly apiUrl = process.env['URL_SOLICITUD_DEUNA'];
 	private readonly apiUrlEstatus = process.env['URL_ESTATUS_DEUNA'];
 	private readonly apiUrlCancel = process.env['URL_CANCELACION_DEUNA'];
+	private readonly apiUrlPayphoneStatus = process.env['URL_PAYPHONE_STATUS'];
 	constructor(
 		private prisma: PrismaService,
 		private readonly httpService: HttpService,
-		private firmaSeguraService: FirmaSeguraService
+		private firmaSeguraService: FirmaSeguraService,
+		@Inject(forwardRef(() => ApplicationService))
+		private readonly appService: ApplicationService,
+		private readonly paymentGateway: PaymentGateway
 	) {}
 
 	async createPayment(data: CreatePaymentDto) {
@@ -42,7 +48,7 @@ export class PaymentService {
 		let comprobanteBuffer: Buffer | null = null;
 
 		// Validar según tipo de pago
-		if (data.tipoPago !== 'Deuna') {
+		if (data.tipoPago !== 'Deuna' && data.tipoPago !== 'Payphone') {
 			if (!data.comprobanteImageBase64 || data.comprobanteImageBase64.trim() === '') {
 				return Utils.formatResponseFail('El comprobante es obligatorio para este tipo de pago');
 			}
@@ -75,19 +81,27 @@ export class PaymentService {
 			return Utils.formatResponseFail('Pago no encontrado');
 		}
 
-		if (payment.status === 'aprobado' && data.status === 'aprobado') {
-			return Utils.formatResponseFail('El pago ya ha sido aprobado');
-		}
-
 		const app = await this.prisma.application.findUnique({ where: { id: payment.applicationId } });
 		if (!app) {
 			return Utils.formatResponseFail('La solicitud asociada no existe');
+		}
+
+		if (payment.status === 'aprobado' && data.status === 'aprobado' && app.status === 'aprobado') {
+			return Utils.formatResponseFail('El pago y la solicitud ya han sido aprobadas');
 		}
 
 		const plan = await this.prisma.plan.findUnique({ where: { id: app.planId } });
 		if (!plan) {
 			return Utils.formatResponseFail('El plan asociado a la solicitud no existe');
 		}
+
+		await this.prisma.payment.update({
+			where: { id },
+			data: {
+				status: data.status,
+				approvedAt: data.status === 'aprobado' || data.status === 'rechazado' ? new Date() : null,
+			},
+		});
 
 		// Preparamos los bytes de los documentos
 		const frontBytes = Array.from(app.identificationFront);
@@ -107,8 +121,6 @@ export class PaymentService {
 
 		let firmaResponse;
 		try {
-			console.log('Inu');
-			console.log(moment(app.appointmentExpirationDate).format('YYYY-MM-DD HH:mm:ss'));
 			// Llamada a FirmaSegura
 			firmaResponse = await this.firmaSeguraService.registerApplication({
 				identificationNumber: app.identificationNumber,
@@ -161,14 +173,6 @@ export class PaymentService {
 		if (firmaResponse.status == 200) {
 			try {
 				await this.prisma.$transaction(async (tx) => {
-					await tx.payment.update({
-						where: { id },
-						data: {
-							status: data.status,
-							approvedAt: data.status === 'aprobado' || data.status === 'rechazado' ? new Date() : null,
-						},
-					});
-
 					const client = await tx.client.create({
 						data: {
 							identificationNumber: app.identificationNumber,
@@ -196,10 +200,10 @@ export class PaymentService {
 					await tx.application.update({
 						where: { id: app.id },
 						data: {
-							externalStatus: firmaResponse.status == 200 ? 'pending' : 'Rechazado', //cambiar nuca  va entrar al cron
+							externalStatus: 'pending',
 							lastCheckedAt: new Date(),
 							approvedById: data.adminUserId,
-							status: 'Aprobado',
+							status: 'aprobado',
 							approvedAt: new Date(),
 						},
 						select: {
@@ -212,9 +216,24 @@ export class PaymentService {
 				return Utils.formatResponseSuccess('Estado del pago actualizado y solicitud registrada exitosamente');
 			} catch (error) {
 				console.error('Error en la transacción Prisma:', error);
-				return Utils.formatResponseFail('Error al registrar la solicitud en la base de datos: ' + (error.message || 'desconocido'));
+				return Utils.formatResponseFail('Error' + (error.message || 'desconocido'));
 			}
 		} else {
+			await this.prisma.application.update({
+				where: { id: app.id },
+				data: {
+					externalStatus: 'error',
+					observation: `Error al registrar en FirmaSegura: ${firmaResponse?.data?.message || 'desconocido'}`,
+					lastCheckedAt: new Date(),
+					approvedById: data.adminUserId,
+					status: 'registrado - no enviado',
+					approvedAt: new Date(),
+				},
+				select: {
+					id: true,
+					approvedBy: { select: { id: true, name: true, email: true } },
+				},
+			});
 			return Utils.formatResponseFail(`Error al registrar la solicitud en FirmaSegura: ${firmaResponse?.data?.message || 'desconocido'}`);
 		}
 	}
@@ -243,6 +262,96 @@ export class PaymentService {
 		return Utils.formatResponseSuccess('Pago encontrado', Utils.formatDates(payment));
 	}
 
+	async requestPaymentPayphone(idSolicitud: number) {
+		try {
+			const app = await this.prisma.application.findUnique({
+				where: { id: idSolicitud },
+				select: {
+					id: true,
+					referenceTransaction: true,
+					plan: true,
+					applicantName: true,
+					planId: true,
+					emailAddress: true,
+					cellphoneNumber: true,
+				},
+			});
+
+			if (!app) {
+				return Utils.formatResponseFail('La solicitud asociada no existe');
+			}
+
+			const plan = await this.prisma.plan.findUnique({
+				where: { id: app.planId },
+			});
+
+			if (!plan) {
+				return Utils.formatResponseFail('El plan asociado a la solicitud no existe');
+			}
+			console.log('inu1');
+			await this.createPayment({
+				applicationId: app.id,
+				comprobanteNumber: 'Payphone-' + app.referenceTransaction,
+				comprobanteImageBase64: '',
+				tipoPago: 'Payphone',
+			});
+
+			console.log('inu2');
+
+			return Utils.formatResponseSuccess('Solicitud de pago Payphone creada exitosamente', { app, iva: process.env.IVA || '0' });
+		} catch (e) {
+			return Utils.formatResponseFail('Error al enviar solicitud de pago Payphone' + e.message);
+		}
+	}
+	async getPaymentStatusPayphone(transactionId: string, clientTransactionId: string) {
+		const headers = {
+			Authorization: `Bearer ${process.env.TOKEN_PAYPHONE}`,
+			'Content-Type': 'application/json',
+		};
+
+		const body = {
+			id: Number(transactionId),
+			clientTxId: clientTransactionId,
+		};
+		const response$ = this.httpService.post(this.apiUrlPayphoneStatus!, body, { headers });
+
+		try {
+			const response = await firstValueFrom(response$);
+			console.log('Respuesta Payphone:', response.data);
+
+			if (response.data.transactionStatus === 'Approved') {
+				console.log('Clowy');
+				try {
+					const app = await this.appService.getApplicationByIntRef(response.data.clientTransactionId);
+
+					if (!app) {
+						return Utils.formatResponseFail('Solicitud no encontrada');
+					}
+
+					console.log(app.data);
+					console.log('Clowy1');
+					if (app.data.payment.status !== 'aprobado') {
+						const res = await this.updateStatus(app.data.payment.id, {
+							status: response.data.transactionStatus === 'Approved' ? 'aprobado' : 'rechazado',
+							adminUserId: 1,
+						});
+						console.log('Clowy2');
+						console.log('Consulta de pago Payphone exitosa1', res.data);
+					} else {
+						console.log('Solicitud aprobada previamente');
+						return Utils.formatResponseSuccess('Solicitud aprobada previamente', response.data);
+					}
+					console.log('Clowy3');
+				} catch (error) {
+					console.error('Error procesando respuesta Payphone:', error);
+					return Utils.formatResponseFail('Error interno al procesar la solicitud');
+				}
+				return Utils.formatResponseSuccess('Consulta de pago Payphone exitosa', response.data);
+			}
+		} catch (error) {
+			return Utils.formatResponseFail('Error al consultar estado del pago Payphone: ' + error.message);
+		}
+	}
 	//deuna
 	async requestPaymentDeuna(idSolicitud: number) {
 		try {
@@ -279,7 +388,7 @@ export class PaymentService {
 			const body = {
 				pointOfSale: process.env['ID-CAJA'],
 				qrType: 'dynamic',
-				amount: parseFloat(plan.price.toFixed(2)),
+				amount: Utils.calculateTotalWithIVA(plan.price, parseFloat(process.env.IVA || '0')),
 				detail: 'Pago firma plan: ' + plan.description + ' - ' + app.applicantName,
 				internalTransactionReference: app.referenceTransaction,
 				format: '2',
@@ -314,6 +423,45 @@ export class PaymentService {
 			});
 
 			const response = await firstValueFrom(response$);
+			const data = response.data;
+
+			if (!response.data?.status || response.data?.idTransaction) {
+				Utils.formatResponseFail('Consulta de deuna fallida: respuesta inválida');
+			}
+
+			if (data.status === 'SUCCESS') {
+				try {
+					const app = await this.appService.getApplicationByIntRef(data.internalTransactionReference);
+
+					if (!app) {
+						return Utils.formatResponseFail('Solicitud no encontrada');
+					}
+
+					console.log(app.data);
+					if (app.data.payment.status !== 'aprobado') {
+						await this.updateStatus(app.data.payment.id, {
+							status: data.status == 'SUCCESS' ? 'aprobado' : 'rechazado',
+							adminUserId: 1,
+						});
+						this.paymentGateway.sendPaymentUpdate(app.data.referenceTransaction, {
+							reference: data.internalTransactionReference,
+							status: data.status,
+							amount: data.amount,
+							customerId: data.customerIdentification,
+							currency: data.currency,
+							date: data.date,
+							description: data.description,
+						});
+					} else {
+						console.log('Solicitud aprobada previamente');
+					}
+					return Utils.formatResponseSuccess('Consulta de pago exitosa', response.data);
+				} catch (error) {
+					console.error('Error procesando webhook:', error);
+					return Utils.formatResponseFail('Error interno al procesar la solicitud');
+				}
+			}
+
 			return Utils.formatResponseSuccess('Consulta de pago exitosa', response.data);
 		} catch (error) {
 			return Utils.formatResponseFail('Error al consultar estado del pago: ' + error.message);

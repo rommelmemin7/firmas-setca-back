@@ -54,20 +54,31 @@ export class ApplicationService {
 					authorizationVideo: dto.authorizationVideo ? Buffer.from(dto.authorizationVideo, 'base64') : null,
 					createdAt: new Date(),
 					idCreador: dto.idCreador,
-
 					// approvedById se deja null al crear
 				},
 			});
 
+			console.log('dto.paymentMethod', dto.paymentMethod);
 			if (app.idCreador == null) {
-				try {
-					const response = await this.payment.requestPaymentDeuna(app.id);
+				if (dto.paymentMethod && dto.paymentMethod === 'deuna') {
+					try {
+						const response = await this.payment.requestPaymentDeuna(app.id);
 
-					response.data.referenceTransaction = app.referenceTransaction;
+						response.data.referenceTransaction = app.referenceTransaction;
 
-					return Utils.formatResponseSuccess('Solicitud creada exitosamente', response.data);
-				} catch (error) {
-					Utils.formatResponseFail('Error al enviar solicitud de pago deUna: ' + error.message);
+						return Utils.formatResponseSuccess('Solicitud creada exitosamente', response.data);
+					} catch (error) {
+						Utils.formatResponseFail('Error al enviar solicitud de pago deUna: ' + error.message);
+					}
+				}
+				if (dto.paymentMethod && dto.paymentMethod === 'payphone') {
+					try {
+						const response = await this.payment.requestPaymentPayphone(app.id);
+
+						return Utils.formatResponseSuccess('Solicitud creada exitosamente', response.data);
+					} catch (error) {
+						Utils.formatResponseFail('Error al enviar solicitud de pago Payphone: ' + error.message);
+					}
 				}
 			} else {
 				return Utils.formatResponseSuccess('Solicitud creada exitosamente', Utils.formatDates(app));
