@@ -288,15 +288,13 @@ export class PaymentService {
 			if (!plan) {
 				return Utils.formatResponseFail('El plan asociado a la solicitud no existe');
 			}
-			console.log('inu1');
+
 			await this.createPayment({
 				applicationId: app.id,
 				comprobanteNumber: 'Payphone-' + app.referenceTransaction,
 				comprobanteImageBase64: '',
 				tipoPago: 'Payphone',
 			});
-
-			console.log('inu2');
 
 			return Utils.formatResponseSuccess('Solicitud de pago Payphone creada exitosamente', { app, iva: process.env.IVA || '0' });
 		} catch (e) {
@@ -320,7 +318,6 @@ export class PaymentService {
 			console.log('Respuesta Payphone:', response.data);
 
 			if (response.data.transactionStatus === 'Approved') {
-				console.log('Clowy');
 				try {
 					const app = await this.appService.getApplicationByIntRef(response.data.clientTransactionId);
 
@@ -328,20 +325,15 @@ export class PaymentService {
 						return Utils.formatResponseFail('Solicitud no encontrada');
 					}
 
-					console.log(app.data);
-					console.log('Clowy1');
 					if (app.data.payment.status !== 'aprobado') {
 						const res = await this.updateStatus(app.data.payment.id, {
 							status: response.data.transactionStatus === 'Approved' ? 'aprobado' : 'rechazado',
 							adminUserId: 1,
 						});
-						console.log('Clowy2');
-						console.log('Consulta de pago Payphone exitosa1', res.data);
 					} else {
 						console.log('Solicitud aprobada previamente');
 						return Utils.formatResponseSuccess('Solicitud aprobada previamente', response.data);
 					}
-					console.log('Clowy3');
 				} catch (error) {
 					console.error('Error procesando respuesta Payphone:', error);
 					return Utils.formatResponseFail('Error interno al procesar la solicitud');
