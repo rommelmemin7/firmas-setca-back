@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Patch, Get, Param, ParseIntPipe, UseInterceptors, UseGuards, Res, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Patch, Get, Param, ParseIntPipe, UseInterceptors, UseGuards, Res, HttpStatus, Query } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
@@ -31,6 +31,12 @@ export class PaymentController {
 	@Get('application/:applicationId')
 	getByApplication(@Param('applicationId', ParseIntPipe) applicationId: number) {
 		return this.paymentService.getPaymentByApplication(applicationId);
+	}
+
+	@Post('payphone')
+	async handlePayphoneResponse(@Body('id') id: string, @Body('clientTxId') clientTxId: string) {
+		console.log('Payphone - Transaction ID:', id);
+		return this.paymentService.getPaymentStatusPayphone(id, clientTxId);
 	}
 
 	@Post('request-deuna')

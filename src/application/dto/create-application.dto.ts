@@ -105,4 +105,9 @@ export class CreateApplicationDto {
 	@IsNotEmpty({ message: 'El planId es obligatorio' })
 	@IsInt({ message: 'El planId debe ser un número entero' })
 	planId: number;
+
+	@IsString()
+	@IsOptional()
+	@MaxLength(20)
+	paymentMethod?: string;
 }
