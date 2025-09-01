@@ -8,6 +8,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 export class FirmaSeguraService {
 	private readonly logger = new Logger(FirmaSeguraService.name);
 	private readonly apiToken = process.env.FIRMA_SEGURA_TOKEN?.trim();
+	private readonly urlFirmaSegura = process.env.URL_FIRMA_SEGURA?.trim();
 
 	constructor(
 		private prisma: PrismaService,
@@ -16,7 +17,7 @@ export class FirmaSeguraService {
 
 	async registerApplication(data: any) {
 		try {
-			const response$ = this.httpService.post('https://api.dev-firmaseguraec.com/collector/request', data, { headers: { Authorization: `Bearer ${this.apiToken}` } });
+			const response$ = this.httpService.post(`${this.urlFirmaSegura}/collector/request`, data, { headers: { Authorization: `Bearer ${this.apiToken}` } });
 
 			const response = await firstValueFrom(response$);
 
@@ -35,7 +36,7 @@ export class FirmaSeguraService {
 	}
 
 	async checkApplicationStatus(referenceTransaction: string) {
-		const response$ = this.httpService.get('https://api.dev-firmaseguraec.com/gateway/request/status', {
+		const response$ = this.httpService.get(`${this.urlFirmaSegura}/gateway/request/status`, {
 			headers: { Authorization: `Bearer ${this.apiToken}` },
 			params: { referenceTransaction },
 		});
