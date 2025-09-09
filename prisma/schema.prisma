@@ -164,12 +164,13 @@ model Payment {
   application Application @relation("ApplicationPayment", fields: [applicationId], references: [id])
 
   comprobanteNumber String      @db.VarChar(50)
+  banco String      @db.VarChar(50)
+  numeroCuenta      String      @db.VarChar(50)
   status            String      @default("pendiente") // pendiente, aprobado, rechazado
   tipoPago          String?      
   comprobanteImage  Bytes?       @db.LongBlob
   createdAt         DateTime    @default(now())
   approvedAt        DateTime?
-
   updatedAt         DateTime    @updatedAt
 }
 

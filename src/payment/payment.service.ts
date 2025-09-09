@@ -68,7 +68,9 @@ export class PaymentService {
 				applicationId: data.applicationId,
 				comprobanteNumber: data.comprobanteNumber,
 				tipoPago: data.tipoPago ? data.tipoPago.toUpperCase() : 'TRANSFERENCIA',
-				comprobanteImage: comprobanteBuffer, //
+				comprobanteImage: comprobanteBuffer,
+				banco: data.bank ? data.bank : 'N/A',
+				numeroCuenta: data.accountNumber ? data.accountNumber : 'N/A',
 			},
 		});
 
@@ -294,6 +296,8 @@ export class PaymentService {
 				comprobanteNumber: 'Payphone-' + app.referenceTransaction,
 				comprobanteImageBase64: '',
 				tipoPago: 'Payphone',
+				bank: '',
+				accountNumber: '',
 			});
 
 			return Utils.formatResponseSuccess('Solicitud de pago Payphone creada exitosamente', { app, iva: process.env.IVA || '0' });
@@ -370,6 +374,8 @@ export class PaymentService {
 				comprobanteNumber: 'DeUna-' + app.referenceTransaction,
 				comprobanteImageBase64: '',
 				tipoPago: 'Deuna',
+				bank: '',
+				accountNumber: '',
 			});
 
 			const headers = {

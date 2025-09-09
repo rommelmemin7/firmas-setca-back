@@ -74,7 +74,6 @@ export class FirmaSeguraService {
 
 					this.logger.log(`Solicitud ${app.referenceTransaction} actualizada a ${statusResponse.status} - ${statusResponse.observation.message}`);
 				} else {
-					// 👇 Si no cambió, solo actualiza la fecha de verificación
 					await this.prisma.application.update({
 						where: { id: app.id },
 						data: {
