@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Query, Param, ParseIntPipe, Get } from '@nestjs/common';
 import { FirmaSeguraService } from './firma-segura.service';
 
 @Controller('firma-segura')
@@ -8,5 +8,10 @@ export class FirmaSeguraController {
 	@Post('register')
 	async register(@Body() body: any) {
 		return this.service.registerApplication(body);
+	}
+
+	@Get('resend/:id')
+	async resend(@Param('id', ParseIntPipe) id: number) {
+		return this.service.resendAplication(id);
 	}
 }
