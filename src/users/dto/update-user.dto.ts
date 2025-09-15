@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsEmail, MaxLength } from 'class-validator';
+import { IsOptional, IsString, IsEmail, MaxLength, IsInt } from 'class-validator';
 
 export class UpdateUserDto {
 	@IsOptional()
@@ -19,4 +19,8 @@ export class UpdateUserDto {
 	@IsString()
 	@MaxLength(20)
 	status?: string;
+
+	@IsOptional()
+	@IsInt()
+	descuento?: number;
 }
