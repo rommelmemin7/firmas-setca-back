@@ -23,6 +23,7 @@ model Plan {
   status        String         @default("active")
   createdAt     DateTime       @default(now())
   updatedAt     DateTime?      @updatedAt
+  descuento     Int?           @default(0)
   applications  Application[]
   subscriptions Subscription[]
 }
