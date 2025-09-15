@@ -311,6 +311,30 @@ export class ApplicationService {
 		return Utils.formatResponseSuccess('Solicitudes filtradas obtenidas exitosamente', Utils.formatDates(results));
 	}
 
+	async updateApplicationCosts(id: number, updateCostsDto: { costoMomento: number; cobrado: number }) {
+		const { costoMomento, cobrado } = updateCostsDto;
+
+		const result = await this.prisma.application.update({
+			where: { id },
+			data: {
+				costoMomento,
+				cobrado,
+			},
+		});
+
+		return Utils.formatResponseSuccess('Costos de la solicitud actualizados exitosamente', Utils.formatDates(result));
+	}
+
+	/* async approveApplication(id: number, adminUserId: number) {
+    try {
+      const response = await this.getApplicationById(id);
+      const app = response.data;
+
+		});
+
+		return 
+	}
+
 	/* async approveApplication(id: number, adminUserId: number) {
     try {
       const response = await this.getApplicationById(id);

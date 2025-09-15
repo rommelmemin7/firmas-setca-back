@@ -49,6 +49,11 @@ export class ApplicationController {
 		const idUser = req.user.sub;
 		return this.applicationService.filterApplications(filters, roleId, idUser);
 	}
+
+	@Patch(':id/update-costs')
+	async updateCosts(@Param('id', ParseIntPipe) id: number, @Body() updateCostsDto: { costoMomento: number; cobrado: number }) {
+		return this.applicationService.updateApplicationCosts(id, updateCostsDto);
+	}
 	/*  @UseGuards(JwtAuthGuard)
   @Patch(':id/approve')
   async approve(@Param('id', ParseIntPipe) id: number, @Req() req) {
