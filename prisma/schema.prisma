@@ -160,5 +160,6 @@ model Payment {
   updatedAt         DateTime    @updatedAt
   banco             String      @default("Banco xxxxx")
   numeroCuenta      String      @default("xxxxxxxx")
+  fechaPago         DateTime?   @db.DateTime(0)
   application       Application @relation("ApplicationPayment", fields: [applicationId], references: [id])
 }

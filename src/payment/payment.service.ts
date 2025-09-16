@@ -70,6 +70,7 @@ export class PaymentService {
 				tipoPago: data.tipoPago ? data.tipoPago.toUpperCase() : 'TRANSFERENCIA',
 				comprobanteImage: comprobanteBuffer,
 				banco: data.bank ? data.bank : 'N/A',
+				fechaPago: data.fechaPago ? new Date(data.fechaPago) : new Date(),
 				numeroCuenta: data.accountNumber ? data.accountNumber : 'N/A',
 			},
 		});
@@ -298,6 +299,7 @@ export class PaymentService {
 				tipoPago: 'Payphone',
 				bank: '',
 				accountNumber: '',
+				fechaPago: new Date().toISOString(),
 			});
 
 			return Utils.formatResponseSuccess('Solicitud de pago Payphone creada exitosamente', { app, iva: process.env.IVA || '0' });
@@ -376,6 +378,7 @@ export class PaymentService {
 				tipoPago: 'Deuna',
 				bank: '',
 				accountNumber: '',
+				fechaPago: new Date().toISOString(),
 			});
 
 			const headers = {
@@ -386,7 +389,7 @@ export class PaymentService {
 			const body = {
 				pointOfSale: process.env['ID-CAJA'],
 				qrType: 'dynamic',
-				amount: Utils.calculateTotalWithIVA(plan.price, parseFloat(process.env.IVA || '0')),
+				amount: Utils.calculateTotalWithIVA(plan.price, plan.descuento || 0, parseFloat(process.env.IVA || '0')),
 				detail: 'Pago firma plan: ' + plan.description + ' - ' + app.applicantName,
 				internalTransactionReference: app.referenceTransaction,
 				format: '2',

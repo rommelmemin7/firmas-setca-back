@@ -318,7 +318,7 @@ export class ApplicationService {
 			where: { id },
 			data: {
 				costoMomento,
-				cobrado,
+				cobrado: typeof cobrado === 'string' ? parseFloat(cobrado) : cobrado,
 			},
 		});
 
