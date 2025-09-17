@@ -91,7 +91,12 @@ export class ApplicationService {
 	async getAllApplications(role: number, idUser: number) {
 		const app = await this.prisma.application.findMany({
 			orderBy: { createdAt: 'desc' },
-			where: role == 1 ? {} : { idCreador: idUser },
+			where: {
+				...(role == 1 ? {} : { idCreador: idUser }),
+				payment: {
+					status: { not: 'Aprobado' }, // Condición para excluir pagos aprobados
+				},
+			},
 			select: {
 				id: true,
 				identificationNumber: true,
