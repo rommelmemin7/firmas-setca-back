@@ -113,6 +113,7 @@ export class ApplicationService {
 						approvedAt: true,
 					},
 				},
+				planId: true,
 				// relación con approvedBy
 				approvedBy: {
 					select: {
@@ -174,6 +175,7 @@ export class ApplicationService {
 						approvedAt: true,
 					},
 				},
+				plan: true,
 				approvedBy: {
 					select: {
 						id: true,
