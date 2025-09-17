@@ -18,6 +18,10 @@ export class CreatePaymentDto {
 
 	@IsString()
 	@IsOptional()
+	fechaPago: string;
+
+	@IsString()
+	@IsOptional()
 	comprobanteImageBase64: string; // Imagen en Base64
 
 	@IsString()

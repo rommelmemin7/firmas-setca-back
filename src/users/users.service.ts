@@ -65,6 +65,7 @@ export class UsersService {
 				email: true,
 				phone: true,
 				status: true,
+				descuento: true,
 				role: { select: { id: true, name: true } },
 				createdAt: true,
 				updatedAt: true,
@@ -119,6 +120,7 @@ export class UsersService {
 					email: data.email,
 					phone: data.phone,
 					updatedAt: new Date(),
+					descuento: data.descuento,
 					status: data.status,
 				},
 				select: {
@@ -129,6 +131,7 @@ export class UsersService {
 					status: true,
 					role: { select: { id: true, name: true } },
 					createdAt: true,
+					descuento: true,
 					updatedAt: true,
 				},
 			});

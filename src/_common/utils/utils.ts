@@ -152,7 +152,7 @@ export class Utils {
 		return compressedBuffer;
 	}
 
-	static calculateTotalWithIVA(amount: number, ivaPercentage: number): number {
+	static calculateTotalWithIVA(amount: number, desc: number, ivaPercentage: number): number {
 		const total = amount + (amount * ivaPercentage) / 100;
 		return parseFloat(total.toFixed(2));
 	}

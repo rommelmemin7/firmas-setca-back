@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,163 +8,158 @@ datasource db {
 }
 
 model Role {
-  id    Int     @id @default(autoincrement())
-  name  String  @unique
+  id    Int    @id @default(autoincrement())
+  name  String @unique
   users User[]
 }
 
-
 model Plan {
-  id             Int             @id @default(autoincrement())
-  name           String
-  description    String?
-  period         String?
-  price          Float
-  durationdays   Int             @default(7)
-  status       String            @default("active")
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime?        @updatedAt
-
-  subscriptions  Subscription[]
-  applications   Application[]
+  id            Int            @id @default(autoincrement())
+  name          String
+  description   String?
+  period        String?
+  price         Float
+  durationdays  Int            @default(7)
+  status        String         @default("active")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime?      @updatedAt
+  descuento     Int?           @default(0)
+  applications  Application[]
+  subscriptions Subscription[]
 }
-
 
 model AuditLog {
   id           Int      @id @default(autoincrement())
   userId       Int?
-  user         User?    @relation(fields: [userId], references: [id])
   action       String
   resourceType String?
   resourceId   Int?
   details      String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  user         User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "AuditLog_userId_fkey")
 }
 
 model User {
-  id               Int        @id @default(autoincrement())
-  roleId           Int
-  role             Role       @relation(fields: [roleId], references: [id])
-  name             String
-  email            String     @unique
-  passwordHash     String
-  phone            String?
-  status           String     @default("active")
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime?   @updatedAt
-
-  auditLogs        AuditLog[]
-
-  // Relación inversa para aplicaciones aprobadas
+  id                   Int           @id @default(autoincrement())
+  roleId               Int
+  name                 String
+  email                String        @unique
+  passwordHash         String
+  phone                String?
+  status               String        @default("active")
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime?     @updatedAt
+  descuento            Int?          @default(0)
   approvedApplications Application[] @relation("ApplicationApprover")
-
-  // Relación inversa para clientes aprobados
+  auditLogs            AuditLog[]
   approvedClients      Client[]      @relation("ClientApprover")
+  role                 Role          @relation(fields: [roleId], references: [id])
+
+  @@index([roleId], map: "User_roleId_fkey")
 }
 
 model Client {
-  id                      Int       @id @default(autoincrement())
-
-  identificationNumber    String    @db.VarChar(10)
-  applicantName           String    @db.VarChar(100)
-  applicantLastName       String?   @db.VarChar(100)
-  applicantSecondLastName String?   @db.VarChar(100)
-  emailAddress            String    @db.VarChar(100)
-  cellphoneNumber         String    @db.VarChar(20)
- 
+  id                      Int            @id @default(autoincrement())
+  identificationNumber    String         @db.VarChar(10)
+  applicantName           String         @db.VarChar(100)
+  applicantLastName       String?        @db.VarChar(100)
+  applicantSecondLastName String?        @db.VarChar(100)
+  emailAddress            String         @db.VarChar(100)
+  cellphoneNumber         String         @db.VarChar(20)
   approvedById            Int?
-  approvedBy              User? @relation("ClientApprover", fields: [approvedById], references: [id])
-
+  applicationId           Int
+  status                  String         @default("active")
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  application             Application    @relation(fields: [applicationId], references: [id])
+  approvedBy              User?          @relation("ClientApprover", fields: [approvedById], references: [id])
   subscriptions           Subscription[]
 
-  applicationId Int
-  application   Application @relation(fields: [applicationId], references: [id])
-
-  status                  String    @default("active")
-
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
+  @@index([applicationId], map: "Client_applicationId_fkey")
+  @@index([approvedById], map: "Client_approvedById_fkey")
 }
 
 model Application {
-  id                      Int       @id @default(autoincrement())
-  identificationNumber    String    @db.VarChar(10)
-  applicantName           String    @db.VarChar(100)
-  applicantLastName       String?   @db.VarChar(100)
-  applicantSecondLastName String?   @db.VarChar(100)
-  fingerCode              String?   @db.VarChar(10)
-  emailAddress            String    @db.VarChar(100)
-  cellphoneNumber         String    @db.VarChar(20)
-  city                    String    @db.VarChar(100)
-  province                String    @db.VarChar(100)
-  address                 String    @db.VarChar(100)
-  countryCode             String    @db.VarChar(10)
-  companyRuc              String?   @db.VarChar(13)
-  positionCompany         String?   @db.VarChar(100)
-  companySocialReason     String?   @db.VarChar(250)
-  appointmentExpirationDate DateTime?
-  applicationType         String    @db.VarChar(50)
-  documentType            String    @db.VarChar(50)
-  referenceTransaction    String    @db.VarChar(150)
-  period                  String    @db.VarChar(50)
-
-  identificationFront     Bytes
-  identificationBack      Bytes
-  identificationSelfie    Bytes
-
-  status           String     @default("pendiente")
-  pdfCompanyRuc           Bytes?
+  id                           Int       @id @default(autoincrement())
+  identificationNumber         String    @db.VarChar(10)
+  applicantName                String    @db.VarChar(100)
+  applicantLastName            String?   @db.VarChar(100)
+  applicantSecondLastName      String?   @db.VarChar(100)
+  fingerCode                   String?   @db.VarChar(10)
+  emailAddress                 String    @db.VarChar(100)
+  cellphoneNumber              String    @db.VarChar(20)
+  city                         String    @db.VarChar(100)
+  province                     String    @db.VarChar(100)
+  address                      String    @db.VarChar(100)
+  countryCode                  String    @db.VarChar(10)
+  companyRuc                   String?   @db.VarChar(13)
+  positionCompany              String?   @db.VarChar(100)
+  companySocialReason          String?   @db.VarChar(250)
+  appointmentExpirationDate    DateTime?
+  applicationType              String    @db.VarChar(50)
+  documentType                 String    @db.VarChar(50)
+  referenceTransaction         String    @db.VarChar(150)
+  period                       String    @db.VarChar(50)
+  identificationFront          Bytes
+  identificationBack           Bytes
+  identificationSelfie         Bytes
+  status                       String    @default("pendiente")
+  pdfCompanyRuc                Bytes?
   pdfRepresentativeAppointment Bytes?
-  pdfAppointmentAcceptance Bytes?
-  pdfCompanyConstitution  Bytes?
-  authorizationVideo      Bytes?
+  pdfAppointmentAcceptance     Bytes?
+  pdfCompanyConstitution       Bytes?
+  authorizationVideo           Bytes?
+  observation                  String?   @db.Text
+  approvedById                 Int?
+  planId                       Int
+  externalStatus               String    @default("pending")
+  lastCheckedAt                DateTime?
+  idCreador                    Int?
+  createdAt                    DateTime  @default(now())
+  approvedAt                   DateTime?
+  updatedAt                    DateTime  @updatedAt
+  costoMomento                 Float?    @default(0) @db.Float
+  cobrado                      Float?    @default(0) @db.Float
+  approvedBy                   User?     @relation("ApplicationApprover", fields: [approvedById], references: [id])
+  plan                         Plan      @relation(fields: [planId], references: [id])
+  clients                      Client[]
+  payment                      Payment?  @relation("ApplicationPayment")
 
-  observation             String? @db.Text
-
-  approvedById            Int?
-  approvedBy              User? @relation("ApplicationApprover", fields: [approvedById], references: [id])
-  planId                  Int
-  plan                    Plan @relation(fields: [planId], references: [id])
-  payment Payment? @relation("ApplicationPayment")
-  externalStatus       String    @default("pending")
-  lastCheckedAt        DateTime? 
-  idCreador            Int?
-
-  clients Client[]
-
-
-  createdAt               DateTime  @default(now())
-  approvedAt              DateTime?
-  updatedAt               DateTime  @updatedAt
+  @@index([approvedById], map: "Application_approvedById_fkey")
+  @@index([planId], map: "Application_planId_fkey")
 }
 
 model Subscription {
-  id         Int       @id @default(autoincrement())
-  clientId   Int
-  client     Client    @relation(fields: [clientId], references: [id])
-  planId     Int
-  plan       Plan      @relation(fields: [planId], references: [id])
-  startDate  DateTime
-  endDate    DateTime
-  status     String    @default("active")
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  planId    Int
+  startDate DateTime
+  endDate   DateTime
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client    Client   @relation(fields: [clientId], references: [id])
+  plan      Plan     @relation(fields: [planId], references: [id])
+
+  @@index([clientId], map: "Subscription_clientId_fkey")
+  @@index([planId], map: "Subscription_planId_fkey")
 }
 
 model Payment {
   id                Int         @id @default(autoincrement())
   applicationId     Int         @unique
-  application Application @relation("ApplicationPayment", fields: [applicationId], references: [id])
-
   comprobanteNumber String      @db.VarChar(50)
-  banco String      @db.VarChar(50)
-  numeroCuenta      String      @db.VarChar(50)
-  status            String      @default("pendiente") // pendiente, aprobado, rechazado
-  tipoPago          String?      
-  comprobanteImage  Bytes?       @db.LongBlob
+  status            String      @default("pendiente")
+  tipoPago          String?
+  comprobanteImage  Bytes?
   createdAt         DateTime    @default(now())
   approvedAt        DateTime?
   updatedAt         DateTime    @updatedAt
+  banco             String      @default("Banco xxxxx")
+  numeroCuenta      String      @default("xxxxxxxx")
+  fechaPago         DateTime?   @db.DateTime(0)
+  application       Application @relation("ApplicationPayment", fields: [applicationId], references: [id])
 }
-

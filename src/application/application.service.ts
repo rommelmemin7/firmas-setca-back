@@ -91,7 +91,12 @@ export class ApplicationService {
 	async getAllApplications(role: number, idUser: number) {
 		const app = await this.prisma.application.findMany({
 			orderBy: { createdAt: 'desc' },
-			where: role == 1 ? {} : { idCreador: idUser },
+			where: {
+				...(role == 1 ? {} : { idCreador: idUser }),
+				payment: {
+					status: { not: 'Aprobado' }, // Condición para excluir pagos aprobados
+				},
+			},
 			select: {
 				id: true,
 				identificationNumber: true,
@@ -311,6 +316,30 @@ export class ApplicationService {
 		});
 
 		return Utils.formatResponseSuccess('Solicitudes filtradas obtenidas exitosamente', Utils.formatDates(results));
+	}
+
+	async updateApplicationCosts(id: number, updateCostsDto: { costoMomento: number; cobrado: number }) {
+		const { costoMomento, cobrado } = updateCostsDto;
+
+		const result = await this.prisma.application.update({
+			where: { id },
+			data: {
+				costoMomento,
+				cobrado: typeof cobrado === 'string' ? parseFloat(cobrado) : cobrado,
+			},
+		});
+
+		return Utils.formatResponseSuccess('Costos de la solicitud actualizados exitosamente', Utils.formatDates(result));
+	}
+
+	/* async approveApplication(id: number, adminUserId: number) {
+    try {
+      const response = await this.getApplicationById(id);
+      const app = response.data;
+
+		});
+
+		return 
 	}
 
 	/* async approveApplication(id: number, adminUserId: number) {
