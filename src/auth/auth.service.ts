@@ -32,6 +32,7 @@ export class AuthService {
 			name: user.name,
 			email: user.email,
 			role: user.role.id,
+			descuento: user.descuento,
 		};
 
 		const token: string = this.jwtService.sign(payload);
@@ -43,6 +44,7 @@ export class AuthService {
 				name: user.name,
 				email: user.email,
 				role: user.role.name,
+				descuento: user.descuento,
 			},
 		});
 	}
